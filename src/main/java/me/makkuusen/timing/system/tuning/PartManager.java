@@ -3,7 +3,7 @@ package me.makkuusen.timing.system.tuning;
 import java.util.*;
 
 public class PartManager {
-    Map<String, Part> parts = new HashMap<>();
+    private static Map<String, Part> parts = new HashMap<>();
 
     public PartManager(){
         parts.put("1", new Part("Stock Oars"));
@@ -11,18 +11,18 @@ public class PartManager {
         parts.put("3", new Part("Stock Oars"));
     }
 
-    public boolean addPart(Part part){
+    public static boolean addPart(Part part){
         if (partExists(part.getName())) return false;
 
         parts.put(part.getId(), part);
         return true;
     }
 
-    public boolean removePart(String id){
+    public static boolean removePart(String id){
         return parts.remove(id) != null;
     }
 
-    public List<String> getPartNames() {
+    public static List<String> getPartNames() {
         List<String> names = new ArrayList<>();
 
         for (Part part : parts.values()) {
@@ -32,19 +32,19 @@ public class PartManager {
         return names;
     }
 
-    public Collection<Part> getParts() {
+    public static Collection<Part> getParts() {
         return parts.values();
     }
 
-    public Part getPart(String id){
+    public static Part getPart(String id){
         return parts.get(id);
     }
 
-    public boolean partExists(String name) {
+    public static boolean partExists(String name) {
         return getPartByName(name) != null;
     }
 
-    public Part getPartByName(String name) {
+    public static Part getPartByName(String name) {
         for (Part part : parts.values()) {
             if (part.getName().equalsIgnoreCase(name)) {
                 return part;

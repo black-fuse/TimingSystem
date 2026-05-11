@@ -23,17 +23,29 @@ public class Part {
 
     public Part(String TheName){
         this.name = TheName;
+
+        addAttribute(Attribute.FORWARD_ACCEL, 5);
+        addAttribute(Attribute.YAW_ACCEL, 5);
+        addAttribute(Attribute.DEFAULT_SLIPPERINESS, 5);
+        addAttribute(Attribute.PACKED_ICE_SLIPPERINESS, 5);
+        addAttribute(Attribute.BLUE_ICE_SLIPPERINESS, 5);
+        addAttribute(Attribute.TURNING_FORWARD_ACCEL, 5);
+        addAttribute(Attribute.BACKWARD_ACCEL, 5);
     }
 
     public void addAttribute(Attribute name, Integer value){
         attributes.put(name, value);
     }
 
-    public void removeAttribute(String name){
+    public void removeAttribute(Attribute name){
         attributes.remove(name);
     }
 
     public Map getAttributes(){
         return attributes;
+    }
+
+    public Integer getValue(Attribute attribute){
+        return attributes.get(attribute);
     }
 }

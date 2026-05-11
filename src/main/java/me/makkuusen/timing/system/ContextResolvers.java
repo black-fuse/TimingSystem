@@ -26,6 +26,7 @@ import me.makkuusen.timing.system.track.locations.TrackLocation;
 import me.makkuusen.timing.system.track.options.TrackOption;
 import me.makkuusen.timing.system.track.regions.TrackRegion;
 import me.makkuusen.timing.system.track.tags.TrackTag;
+import me.makkuusen.timing.system.tuning.PartManager;
 import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.entity.Boat;
 
@@ -219,6 +220,11 @@ public class ContextResolvers {
                 }
             }
             return new ArrayList<>();
+        });
+
+        // parts stuff i guess (am tired)
+        manager.getCommandCompletions().registerCompletion("parts", context -> {
+            return PartManager.getPartNames();
         });
     }
     public static ContextResolver<Track.TrackType, BukkitCommandExecutionContext> getTrackTypeContextResolver() {

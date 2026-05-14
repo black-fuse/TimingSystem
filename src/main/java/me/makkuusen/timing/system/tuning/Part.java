@@ -2,8 +2,17 @@ package me.makkuusen.timing.system.tuning;
 
 import lombok.Getter;
 import lombok.Setter;
+import me.makkuusen.timing.system.ItemBuilder;
+import me.makkuusen.timing.system.tplayer.TPlayer;
+import net.kyori.adventure.text.Component;
+import org.bukkit.Material;
+import org.bukkit.inventory.ItemFlag;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
 
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class Part {
@@ -12,13 +21,16 @@ public class Part {
     @Getter
     private String id;
     @Getter
-    public PartCatagory CatagoryName;
+    @Setter
+    public PartCategory CategoryName;
     @Getter
     @Setter
     public Integer rating;
     @Getter
     @Setter
     private String description;
+    @Setter
+    private Material item;
     private Map<Attribute, Integer> attributes = new HashMap<>();
 
     public Part(String TheName){
@@ -47,5 +59,34 @@ public class Part {
 
     public Integer getValue(Attribute attribute){
         return attributes.get(attribute);
+    }
+
+    public ItemStack getItem(TPlayer tPlayer){
+        if (this.item == null){
+            return new ItemBuilder(Material.PUFFERFISH).setName(this.getName()).build();
+        }
+        ItemStack Item = new ItemBuilder(this.item).setName(this.getName()).build();
+
+        List<Component> loreToSet = new ArrayList<>();
+
+        loreToSet.add(Component.text(this.getDescription()));
+
+        for (Attribute thing : this.attributes.keySet()){
+            loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]"));
+        }
+
+        ItemMeta im = Item.getItemMeta();
+
+        if (im != null) {
+            im.addItemFlags(ItemFlag.HIDE_ENCHANTS);
+            im.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
+            im.addItemFlags(ItemFlag.HIDE_DYE);
+            im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+            im.displayName(Component.text(this.getName()).color(tPlayer.getTheme().getSecondary()));
+            im.lore(loreToSet);
+            Item.setItemMeta(im);
+        }
+
+        return Item;
     }
 }

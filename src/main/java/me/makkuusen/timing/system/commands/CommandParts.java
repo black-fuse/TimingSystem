@@ -8,6 +8,7 @@ import co.aikar.commands.annotation.Subcommand;
 import me.makkuusen.timing.system.theme.Theme;
 import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
+import me.makkuusen.timing.system.tuning.PartCategory;
 import me.makkuusen.timing.system.tuning.PartManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
@@ -18,13 +19,14 @@ import java.util.Map;
 
 @CommandAlias("parts")
 public class CommandParts extends BaseCommand {
-    @Subcommand("create")
+    @Subcommand("create OARS|HULL|RUDDER")
     @CommandCompletion("<name>")
     @CommandPermission("%permissiontimingsystem_part_create")
-    public void create(CommandSender sender, String name){
+    public void create(CommandSender sender,PartCategory category, String name){
         Theme theme = Theme.getTheme(sender);
 
         Part lePart = new Part(name);
+        lePart.setCategoryName(category);
 
         PartManager.addPart(lePart);
         sender.sendMessage(Component.text("part was added").color(theme.getSuccess()));

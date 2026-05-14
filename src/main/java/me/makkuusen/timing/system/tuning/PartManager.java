@@ -6,9 +6,17 @@ public class PartManager {
     private static Map<String, Part> parts = new HashMap<>();
 
     public PartManager(){
-        parts.put("1", new Part("Stock Oars"));
-        parts.put("2", new Part("Stock Oars"));
-        parts.put("3", new Part("Stock Oars"));
+        Part StockOars = new Part("Stock Oars");
+        Part StockRudder = new Part("Stock Rudder");
+        Part StockHull = new Part("Stock Hull");
+
+        StockOars.setCategoryName(PartCategory.OARS);
+        StockRudder.setCategoryName(PartCategory.RUDDER);
+        StockHull.setCategoryName(PartCategory.HULL);
+
+        parts.put("1", StockOars);
+        parts.put("2", StockRudder);
+        parts.put("3", StockHull);
     }
 
     public static boolean addPart(Part part){

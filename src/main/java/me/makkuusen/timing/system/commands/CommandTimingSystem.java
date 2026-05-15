@@ -317,7 +317,7 @@ public class CommandTimingSystem extends BaseCommand {
     public static void onTuningModifier(CommandSender sender, String attribute, float multiplier) {
         if (!TeamTuning.AVAILABLE_ATTRIBUTES.containsKey(attribute)) {
             sender.sendMessage("§cUnknown attribute: " + attribute);
-            sender.sendMessage("§7Available: " + String.join(", ", TeamTuning.AVAILABLE_ATTRIBUTES.keySet()));
+            sender.sendMessage("§7Available: " + String.join(", ", TeamTuning.AVAILABLE_ATTRIBUTES.keySet().toString()));
             return;
         }
         if (multiplier <= 0) {

@@ -5,21 +5,21 @@ import com.google.gson.reflect.TypeToken;
 import lombok.Getter;
 import lombok.Setter;
 import me.makkuusen.timing.system.TimingSystem;
+import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
+import me.makkuusen.timing.system.tuning.PartCategory;
+import org.w3c.dom.Attr;
 
 import java.lang.reflect.Type;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 @Getter
 @Setter
 public class TeamTuning {
     private int id;
     private int teamID;
-    private Map<String, Integer> attributes = new LinkedHashMap<>();
-    private List<Part> partList = new ArrayList<>();
+    private Map<Attribute, Integer> attributes = new LinkedHashMap<>();
+    private Map<PartCategory, Part> equippedParts = new EnumMap<>(PartCategory.class);
 
     public int MAX_TOTAL_POINTS = 30;
     public static final int MIN_STAT_VALUE = 0;
@@ -28,33 +28,33 @@ public class TeamTuning {
     
     // Define all available attributes here
     // when adding new ones change here and parts.java
-    public static final Map<String, TuningAttribute> AVAILABLE_ATTRIBUTES = new LinkedHashMap<>();
+    public static final Map<Attribute, TuningAttribute> AVAILABLE_ATTRIBUTES = new LinkedHashMap<>();
     static {
         // name, packetId, vanillaDefault, category, multiplier
         // Multiplier > 1 amplifies the effect per point, < 1 dampens it
 
         // --- Acceleration ---
-        AVAILABLE_ATTRIBUTES.put("forwardAcceleration",
+        AVAILABLE_ATTRIBUTES.put(Attribute.FORWARD_ACCEL,
             new TuningAttribute("forwardAcceleration", (short)11, 0.04f, "acceleration", 0.6f));
 
-        AVAILABLE_ATTRIBUTES.put("turningForwardAcceleration",
+        AVAILABLE_ATTRIBUTES.put(Attribute.TURNING_FORWARD_ACCEL,
             new TuningAttribute("turningForwardAcceleration", (short)13, 0.005f, "acceleration", 10.0f));
 
-        AVAILABLE_ATTRIBUTES.put("backwardAcceleration",
+        AVAILABLE_ATTRIBUTES.put(Attribute.BACKWARD_ACCEL,
             new TuningAttribute("backwardAcceleration", (short)12, 0.005f, "acceleration", 9.0f));
 
         // --- Speed ---
-        AVAILABLE_ATTRIBUTES.put("defaultSlipperiness",
+        AVAILABLE_ATTRIBUTES.put(Attribute.DEFAULT_SLIPPERINESS,
             new TuningAttribute("defaultSlipperiness", (short)2, 0.6f, "speed", 1.0f));
 
-        AVAILABLE_ATTRIBUTES.put("packedIceSlipperiness",
+        AVAILABLE_ATTRIBUTES.put(Attribute.PACKED_ICE_SLIPPERINESS,
             new TuningAttribute("packedIceSlipperiness", (short)3, 0.98f, "speed", -0.1f));
 
-        AVAILABLE_ATTRIBUTES.put("blueIceSlipperiness",
+        AVAILABLE_ATTRIBUTES.put(Attribute.BLUE_ICE_SLIPPERINESS,
             new TuningAttribute("blueIceSlipperiness", (short)3, 0.989f, "speed", -0.1f));
 
         // --- Handling ---
-        AVAILABLE_ATTRIBUTES.put("yawAcceleration",
+        AVAILABLE_ATTRIBUTES.put(Attribute.YAW_ACCEL,
             new TuningAttribute("yawAcceleration", (short)10, 1.0f, "handling", 9.0f));
     }
 
@@ -66,22 +66,55 @@ public class TeamTuning {
     public TeamTuning(int teamID){
         this.teamID = teamID;
         // Initialize all attributes at base value
-        for (String attrName : AVAILABLE_ATTRIBUTES.keySet()) {
+        for (Attribute attrName : AVAILABLE_ATTRIBUTES.keySet()) {
             attributes.put(attrName, BASE_STAT_VALUE);
         }
     }
 
-    public boolean addAttribute(String name){
-        try{
-            attributes.put(name, BASE_STAT_VALUE);
-            return true;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return false;
+    public void equipPart(Part part){
+        equippedParts.put(part.getCategoryName(), part);
+        rebuildStats();
+    }
+
+    public void unequipPart(PartCategory category){
+        equippedParts.remove(category);
+        rebuildStats();
+    }
+
+    public void rebuildStats() {
+        resetAttributes();
+
+        for (Part part : equippedParts.values()) {
+            for (Attribute attr : part.getAttributes().keySet()) {
+
+                int value = part.getValue(attr);
+
+                attributes.put(
+                        attr,
+                        attributes.get(attr) + value
+                );
+            }
         }
     }
 
-    public void increaseAttribute(String name){
+    public void resetAttributes(){
+        attributes.clear();
+        for (Attribute attr : attributes.keySet()){
+            attributes.put(attr, 5);
+        }
+    }
+
+    public int getTotalRating(){
+        int total = 0;
+
+        for (Part part : equippedParts.values()){
+            total += part.getRating();
+        }
+
+        return total;
+    }
+
+    public void increaseAttribute(Attribute name){
         try{
             int current = attributes.get(name);
             if (current < MAX_STAT_VALUE && getTotalPoints() < MAX_TOTAL_POINTS) {
@@ -92,7 +125,7 @@ public class TeamTuning {
         }
     }
 
-    public void decreaseAttribute(String name){
+    public void decreaseAttribute(Attribute name){
         try{
             int current = attributes.get(name);
             if (current > MIN_STAT_VALUE) {
@@ -117,10 +150,10 @@ public class TeamTuning {
 
     // applies parts to the overall tuning attribute
     public void applyParts(){
-        for (Part part : partList){
-            Map<String, Integer> attributes = part.getAttributes();
+        for (Part part : equippedParts.values()){
+            Map<Attribute, Integer> attributes = part.getAttributes();
 
-            for (String attr : attributes.keySet()){
+            for (Attribute attr : attributes.keySet()){
                 Integer times = attributes.get(attr);
 
                 for (int x = 0; x < times; x++){
@@ -142,7 +175,7 @@ public class TeamTuning {
         Map<String, Integer> loaded = new Gson().fromJson(json, type);
 
         // Merge: keep saved values for known attributes, use base value for any new ones
-        for (String attr : AVAILABLE_ATTRIBUTES.keySet()) {
+        for (Attribute attr : AVAILABLE_ATTRIBUTES.keySet()) {
             tuning.attributes.put(attr, loaded.getOrDefault(attr, BASE_STAT_VALUE));
         }
         return tuning;

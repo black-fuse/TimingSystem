@@ -53,7 +53,7 @@ public class Part {
         attributes.remove(name);
     }
 
-    public Map getAttributes(){
+    public Map<Attribute, Integer> getAttributes(){
         return attributes;
     }
 

@@ -19,6 +19,7 @@ import me.makkuusen.timing.system.theme.messages.Error;
 import me.makkuusen.timing.system.theme.messages.Info;
 import me.makkuusen.timing.system.theme.messages.Success;
 import me.makkuusen.timing.system.tplayer.TPlayer;
+import me.makkuusen.timing.system.tuning.Attribute;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -271,10 +272,10 @@ public class CommandTeam extends BaseCommand {
         );
 
         TeamTuning tuning = team.getTuning();
-        Map<String, Integer> attributes = tuning.getAttributes();
+        Map<Attribute, Integer> attributes = tuning.getAttributes();
 
         sender.sendMessage(Component.text("acceleration: ").color(theme.getPrimary()));
-        for(String attribute : attributes.keySet()){
+        for(Attribute attribute : attributes.keySet()){
             if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("acceleration")){
                 sendTuningAttribute(sender, team, attribute);
             }
@@ -284,7 +285,7 @@ public class CommandTeam extends BaseCommand {
 
 
         sender.sendMessage(Component.text("speed: ").color(theme.getPrimary()));
-        for(String attribute : attributes.keySet()){
+        for(Attribute attribute : attributes.keySet()){
             if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("speed")){
                 sendTuningAttribute(sender, team, attribute);
             }
@@ -292,7 +293,7 @@ public class CommandTeam extends BaseCommand {
         sender.sendMessage("");
 
         sender.sendMessage(Component.text("handling: ").color(theme.getPrimary()));
-        for(String attribute : attributes.keySet()){
+        for(Attribute attribute : attributes.keySet()){
             if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("handling")){
                 sendTuningAttribute(sender, team, attribute);
             }
@@ -312,7 +313,7 @@ public class CommandTeam extends BaseCommand {
     @CommandCompletion("@teams topSpeed|acceleration|handling")
     @CommandPermission("%permissionteam_tuning")
     @Description("Increase a tuning attribute")
-    public void onTuningIncrease(Player player, Team team, String attribute){
+    public void onTuningIncrease(Player player, Team team, Attribute attribute){
         TeamTuning tuning = team.getTuning();
 
         if (!tuning.getAttributes().containsKey(attribute)) {
@@ -345,7 +346,7 @@ public class CommandTeam extends BaseCommand {
     @CommandCompletion("@teams topSpeed|acceleration|handling")
     @CommandPermission("%permissionteam_tuning")
     @Description("decrease a tuning attribute")
-    public void onTuningDecrease(Player player, Team team, String attribute){
+    public void onTuningDecrease(Player player, Team team, Attribute attribute){
         TeamTuning tuning = team.getTuning();
 
         if (!tuning.getAttributes().containsKey(attribute)) {
@@ -386,9 +387,9 @@ public class CommandTeam extends BaseCommand {
         sender.sendMessage("§aMax tuning points set to " + points);
     }
 
-    private void sendTuningAttribute(CommandSender sender, Team team, String attribute){
+    private void sendTuningAttribute(CommandSender sender, Team team, Attribute attribute){
         Theme theme = Theme.getTheme(sender);
-        Map<String, Integer> attributes = team.getTuning().getAttributes();
+        Map<Attribute, Integer> attributes = team.getTuning().getAttributes();
         Component toSend;
         int currentValue = attributes.get(attribute);
 

@@ -33,6 +33,7 @@ import me.makkuusen.timing.system.team.TuningAttribute;
 import me.makkuusen.timing.system.track.Track;
 import me.makkuusen.timing.system.track.locations.TrackLocation;
 import me.makkuusen.timing.system.tplayer.TPlayer;
+import me.makkuusen.timing.system.tuning.Attribute;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
@@ -863,8 +864,8 @@ public class Heat {
         TimingSystem.getPlugin().getLogger().info("[TimingSystem] Applying tuning to " + player.getName());
 
         // Loop through all attributes and apply them
-        for (Map.Entry<String, Integer> attrEntry : tuning.getAttributes().entrySet()) {
-            String attrName = attrEntry.getKey();
+        for (Map.Entry<Attribute, Integer> attrEntry : tuning.getAttributes().entrySet()) {
+            Attribute attrName = attrEntry.getKey();
             int statValue = attrEntry.getValue();
 
             TuningAttribute attribute = TeamTuning.AVAILABLE_ATTRIBUTES.get(attrName);

@@ -1,14 +1,28 @@
 package me.makkuusen.timing.system.tuning;
 
+import com.google.common.reflect.TypeToken;
+import com.google.gson.Gson;
+import me.makkuusen.timing.system.TimingSystem;
+
+import javax.swing.*;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.lang.reflect.Type;
 import java.util.*;
 
 public class PartManager {
     private static Map<String, Part> parts = new HashMap<>();
 
     public PartManager(){
-        Part StockOars = new Part("Stock Oars");
-        Part StockRudder = new Part("Stock Rudder");
-        Part StockHull = new Part("Stock Hull");
+        Part StockOars = new Part();
+        Part StockRudder = new Part();
+        Part StockHull = new Part();
+
+        StockOars.setName("Stock Oars");
+        StockRudder.setName("Stock Rudder");
+        StockHull.setName("Stock Hull");
+
 
         StockOars.setCategoryName(PartCategory.OARS);
         StockRudder.setCategoryName(PartCategory.RUDDER);
@@ -59,5 +73,51 @@ public class PartManager {
             }
         }
         return null;
+    }
+
+    public static void saveParts(){
+        try{
+            Gson gson = new Gson();
+            File file = new File(TimingSystem.getPlugin().getDataFolder(), "parts.json");
+
+            file.getParentFile().mkdirs();
+
+            FileWriter writer = new FileWriter(file);
+
+            gson.toJson(parts.values(), writer);
+
+            writer.flush();
+            writer.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static void loadParts(){
+        try{
+            Gson gson = new Gson();
+            File file = new File(TimingSystem.getPlugin().getDataFolder(), "parts.json");
+
+            if (!file.exists()){
+                saveParts();
+                return;
+            }
+
+            FileReader reader = new FileReader(file);
+
+            Type type = new TypeToken<List<Part>>(){}.getType();
+
+            List<Part> loadedParts = gson.fromJson(reader, type);
+
+            parts.clear();
+
+            for (Part part : loadedParts){
+                parts.put(part.getId(), part);
+            }
+
+            reader.close();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

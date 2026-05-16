@@ -6,6 +6,8 @@ import me.makkuusen.timing.system.ApiUtilities;
 import me.makkuusen.timing.system.TimingSystem;
 import me.makkuusen.timing.system.database.EventDatabase;
 import me.makkuusen.timing.system.database.TSDatabase;
+import me.makkuusen.timing.system.gui.BoatSetupGui;
+import me.makkuusen.timing.system.gui.PartSelectGui;
 import me.makkuusen.timing.system.heat.Heat;
 import me.makkuusen.timing.system.participant.Driver;
 import me.makkuusen.timing.system.permissions.PermissionTeam;
@@ -256,57 +258,59 @@ public class CommandTeam extends BaseCommand {
     }
 
     // 16/02/26 so I'm just now realising I didn't comment any of this so good luck to whoever works here next
+    // 16/05/26 doesn't matter anymore its gone now
     @Subcommand("tuning")
     @CommandCompletion("@teams")
     @CommandPermission("%permissionteam_tuning")
     @Description("Configure team tuning")
-    public void onTuning(CommandSender sender, Team team){
-        Theme theme = Theme.getTheme(sender);
+    public void onTuning(Player player, CommandSender sender, Team team){
+        new BoatSetupGui(TSDatabase.getPlayer(player.getUniqueId()), team).show(player);
+//        Theme theme = Theme.getTheme(sender);
 
-        sender.sendMessage(
-                theme.getRefreshButton().clickEvent(ClickEvent.runCommand("/team tuning " + team.getName()))
-                        .append(Component.space())
-                        .append(theme.getTitleLine(Component.text(team.getName())
-                                .append(Component.text(" tuning"))
-                        ))
-        );
-
-        TeamTuning tuning = team.getTuning();
-        Map<Attribute, Integer> attributes = tuning.getAttributes();
-
-        sender.sendMessage(Component.text("acceleration: ").color(theme.getPrimary()));
-        for(Attribute attribute : attributes.keySet()){
-            if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("acceleration")){
-                sendTuningAttribute(sender, team, attribute);
-            }
-
-        }
-        sender.sendMessage("");
-
-
-        sender.sendMessage(Component.text("speed: ").color(theme.getPrimary()));
-        for(Attribute attribute : attributes.keySet()){
-            if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("speed")){
-                sendTuningAttribute(sender, team, attribute);
-            }
-        }
-        sender.sendMessage("");
-
-        sender.sendMessage(Component.text("handling: ").color(theme.getPrimary()));
-        for(Attribute attribute : attributes.keySet()){
-            if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("handling")){
-                sendTuningAttribute(sender, team, attribute);
-            }
-        }
-
-        int totalPoints = tuning.getTotalPoints();
-        int remaining = tuning.MAX_TOTAL_POINTS - totalPoints;
-
-        sender.sendMessage(Component.empty());
-        sender.sendMessage(Component.text("Total Points: " + totalPoints + " / " + team.getTuning().getMAX_TOTAL_POINTS())
-                .color(remaining < 0 ? NamedTextColor.RED : theme.getPrimary()));
-        sender.sendMessage(Component.text("Remaining: " + remaining)
-                .color(remaining < 0 ? NamedTextColor.RED : NamedTextColor.GREEN));
+//        sender.sendMessage(
+//                theme.getRefreshButton().clickEvent(ClickEvent.runCommand("/team tuning " + team.getName()))
+//                        .append(Component.space())
+//                        .append(theme.getTitleLine(Component.text(team.getName())
+//                                .append(Component.text(" tuning"))
+//                        ))
+//        );
+//
+//        TeamTuning tuning = team.getTuning();
+//        Map<Attribute, Integer> attributes = tuning.getAttributes();
+//
+//        sender.sendMessage(Component.text("acceleration: ").color(theme.getPrimary()));
+//        for(Attribute attribute : attributes.keySet()){
+//            if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("acceleration")){
+//                sendTuningAttribute(sender, team, attribute);
+//            }
+//
+//        }
+//        sender.sendMessage("");
+//
+//
+//        sender.sendMessage(Component.text("speed: ").color(theme.getPrimary()));
+//        for(Attribute attribute : attributes.keySet()){
+//            if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("speed")){
+//                sendTuningAttribute(sender, team, attribute);
+//            }
+//        }
+//        sender.sendMessage("");
+//
+//        sender.sendMessage(Component.text("handling: ").color(theme.getPrimary()));
+//        for(Attribute attribute : attributes.keySet()){
+//            if (tuning.AVAILABLE_ATTRIBUTES.get(attribute).getCategory().equals("handling")){
+//                sendTuningAttribute(sender, team, attribute);
+//            }
+//        }
+//
+//        int totalPoints = tuning.getTotalPoints();
+//        int remaining = tuning.MAX_TOTAL_POINTS - totalPoints;
+//
+//        sender.sendMessage(Component.empty());
+//        sender.sendMessage(Component.text("Total Points: " + totalPoints + " / " + team.getTuning().getMAX_TOTAL_POINTS())
+//                .color(remaining < 0 ? NamedTextColor.RED : theme.getPrimary()));
+//        sender.sendMessage(Component.text("Remaining: " + remaining)
+//                .color(remaining < 0 ? NamedTextColor.RED : NamedTextColor.GREEN));
     }
 
     @Subcommand("tuning increase")
@@ -339,7 +343,7 @@ public class CommandTeam extends BaseCommand {
 
         applyLiveTuningIfActive(team);
 
-        onTuning(player, team);
+        //onTuning(player, team);
     }
 
     @Subcommand("tuning decrease")
@@ -367,7 +371,7 @@ public class CommandTeam extends BaseCommand {
 
         applyLiveTuningIfActive(team);
 
-        onTuning(player, team);
+        //onTuning(player, team);
     }
 
     @Subcommand("tuning setmaxpoints")
@@ -408,7 +412,7 @@ public class CommandTeam extends BaseCommand {
         sender.sendMessage(toSend);
     }
 
-    private void applyLiveTuningIfActive(Team team) {
+    public void applyLiveTuningIfActive(Team team) {
         // For each online player on the team
         for (TPlayer tPlayer : team.getPlayers()) {
             Player player = tPlayer.getPlayer();

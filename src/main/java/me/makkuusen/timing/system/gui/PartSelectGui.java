@@ -1,6 +1,9 @@
 package me.makkuusen.timing.system.gui;
 
 import me.makkuusen.timing.system.ItemBuilder;
+import me.makkuusen.timing.system.commands.CommandTeam;
+import me.makkuusen.timing.system.team.Team;
+import me.makkuusen.timing.system.team.TeamTuning;
 import me.makkuusen.timing.system.tplayer.TPlayer;
 import me.makkuusen.timing.system.tuning.Part;
 import me.makkuusen.timing.system.tuning.PartCategory;
@@ -9,8 +12,12 @@ import net.kyori.adventure.text.Component;
 
 
 public class PartSelectGui extends BaseGui{
-    public PartSelectGui(TPlayer tPlayer, PartCategory category){
+    private final Team team;
+
+    public PartSelectGui(TPlayer tPlayer, Team team, PartCategory category){
         super(Component.text(category.toString()), 3);
+        this.team = team;
+        setButtons(tPlayer, category);
     }
 
     public GuiButton getCategoryButton(TPlayer tPlayer, PartCategory category){
@@ -20,6 +27,14 @@ public class PartSelectGui extends BaseGui{
 
     public GuiButton getPartButton(TPlayer tPlayer, Part part){
         var button = new GuiButton(part.getItem(tPlayer));
+
+        button.setAction(() -> {
+            Team playerTeam = this.team;
+            TeamTuning tuning = playerTeam.getTuning();
+
+            tuning.equipPart(part);
+            new BoatSetupGui(tPlayer, team).show(tPlayer.getPlayer());
+        });
         return button;
     }
 

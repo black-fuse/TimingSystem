@@ -8,6 +8,7 @@ import me.makkuusen.timing.system.TimingSystem;
 import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
 import me.makkuusen.timing.system.tuning.PartCategory;
+import me.makkuusen.timing.system.tuning.PartManager;
 import org.w3c.dom.Attr;
 
 import java.lang.reflect.Type;
@@ -164,20 +165,50 @@ public class TeamTuning {
     }
 
     public String toJson() {
-        return new Gson().toJson(attributes);
+        TeamTuningData data = new TeamTuningData();
+
+        for (Map.Entry<PartCategory, Part> entry : equippedParts.entrySet()) {
+            data.equippedParts.put(
+                    entry.getKey(),
+                    entry.getValue().getId()
+            );
+        }
+
+        return new Gson().toJson(data);
     }
 
     public static TeamTuning fromJson(int teamID, String json) {
         TeamTuning tuning = new TeamTuning(teamID);
-        if (json == null || json.isEmpty()) return tuning;
 
-        Type type = new TypeToken<LinkedHashMap<String, Integer>>(){}.getType();
-        Map<String, Integer> loaded = new Gson().fromJson(json, type);
-
-        // Merge: keep saved values for known attributes, use base value for any new ones
-        for (Attribute attr : AVAILABLE_ATTRIBUTES.keySet()) {
-            tuning.attributes.put(attr, loaded.getOrDefault(attr, BASE_STAT_VALUE));
+        if (json == null || json.isEmpty()) {
+            return tuning;
         }
+
+        Gson gson = new Gson();
+
+        // Detect legacy format
+        if (json.contains("forwardAcceleration")) {
+
+            // old system fallback
+            return tuning;
+        }
+
+        TeamTuningData data =
+                gson.fromJson(json, TeamTuningData.class);
+
+        for (Map.Entry<PartCategory, String> entry :
+                data.equippedParts.entrySet()) {
+
+
+            Part part = PartManager.getPart(entry.getValue());
+
+            if (part != null) {
+                tuning.equipPart(part);
+            }
+        }
+
+        tuning.rebuildStats();
+
         return tuning;
     }
 

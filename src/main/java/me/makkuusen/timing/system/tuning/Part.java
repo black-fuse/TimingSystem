@@ -10,13 +10,11 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 public class Part {
     @Getter
+    @Setter
     private String name;
     @Getter
     private String id;
@@ -33,8 +31,9 @@ public class Part {
     private Material item;
     private Map<Attribute, Integer> attributes = new HashMap<>();
 
-    public Part(String TheName){
-        this.name = TheName;
+    public Part(){
+        this.id = UUID.randomUUID().toString();
+        this.rating = 0;
 
         addAttribute(Attribute.FORWARD_ACCEL, 5);
         addAttribute(Attribute.YAW_ACCEL, 5);
@@ -70,6 +69,7 @@ public class Part {
         List<Component> loreToSet = new ArrayList<>();
 
         loreToSet.add(Component.text(this.getDescription()));
+        loreToSet.add(Component.text("rating: " + getRating()));
 
         for (Attribute thing : this.attributes.keySet()){
             loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]"));

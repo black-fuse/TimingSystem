@@ -55,6 +55,8 @@ public class TSListener implements Listener {
 
     static TimingSystem plugin;
     static Set<UUID> inPits = new HashSet<>();
+    static Map<UUID, Long> lastBoatExitAttempt = new HashMap<>();
+    private final int BOAT_EXIT_COOLDOWN = 5000;
 
     @EventHandler
     public void onTick(ServerTickStartEvent e) {
@@ -220,19 +222,22 @@ public class TSListener implements Listener {
 
                 if (driver.getState() == DriverState.LOADED || driver.getState() == DriverState.STARTING || driver.getState() == DriverState.RUNNING || driver.getState() == DriverState.RESET || driver.getState() == DriverState.LAPRESET) {
                     event.setCancelled(true);
+
+                    Long currentTime = System.currentTimeMillis();
+                    UUID playerID = player.getUniqueId();
+
+                    if (lastBoatExitAttempt.containsKey(playerID)) {
+                        long lastAttempt = lastBoatExitAttempt.get(playerID);
+                        if (currentTime - lastAttempt < BOAT_EXIT_COOLDOWN) {
+                            return;
+                        }
+                    }
                     Text.send(player, Error.DRIVER_EXIT_BOAT_IN_HEAT);
                     Text.send(player, Error.DRIVER_EXIT_BOAT_IN_HEAT_P2);
+                    lastBoatExitAttempt.put(playerID, currentTime);
                     return;
                 }
             }
-            var maybeDriver = EventDatabase.getDriverFromRunningHeat(player.getUniqueId());
-            if (maybeDriver.isPresent()) {
-                if (maybeDriver.get().getState() == DriverState.LOADED || maybeDriver.get().getState() == DriverState.STARTING || maybeDriver.get().getState() == DriverState.RUNNING || maybeDriver.get().getState() == DriverState.RESET || maybeDriver.get().getState() == DriverState.LAPRESET) {
-                    event.setCancelled(true);
-                    //player.sendMessage(player, Error.DRIVER_EXIT_BOAT_IN_HEAT); //TODO: figure out what happened here
-                    //player.sendMessage(player, Error.DRIVER_EXIT_BOAT_IN_HEAT_P2);
-                    return;
-                }
             if (!player.isSneaking() && TimeTrialController.timeTrials.containsKey(player.getUniqueId())) {
                 event.setCancelled(true);
                 return;
@@ -543,12 +548,12 @@ public class TSListener implements Listener {
 
                     if (track_.isTimeTrial()) {
                         Instant now = TimingSystem.currentTime;
-                        
+
                         double proportion = calculateRegionEntryProportion(e.getFrom(), e.getTo(), region);
                         long tickDurationNanos = 50_000_000L; // 50ms in nanoseconds (1 tick = 50ms)
                         long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
                         now = now.minusNanos(adjustmentNanos);
-                        
+
                         TimeTrial timeTrial = new TimeTrial(track_, TSDatabase.getPlayer(player.getUniqueId()), now);
                         timeTrial.playerStartingTimeTrial();
                         TimeTrialController.elytraProtection.remove(player.getUniqueId());
@@ -564,6 +569,7 @@ public class TSListener implements Listener {
     void onPlayerQuit(PlayerQuitEvent event) {
         TPlayer TPlayer = TSDatabase.getPlayer(event.getPlayer());
         // Set to offline
+        lastBoatExitAttempt.remove(TPlayer.getUniqueId());
         TPlayer.setPlayer(null);
         TPlayer.clearScoreboard();
         BoatUtilsManager.clearPlayerModes(event.getPlayer().getUniqueId());
@@ -695,7 +701,7 @@ public class TSListener implements Listener {
                 if (driver.getState() == DriverState.STARTING) {
                     driver.start(e.getFrom(), e.getTo(), r);
                     heat.updatePositions();
-                    
+
                     if (heat.isBoatSwitchingEnabled()) {
                         var maybeTeamEntry = heat.getTeamEntryByPlayer(player.getUniqueId());
                         if (maybeTeamEntry.isPresent()) {
@@ -703,7 +709,7 @@ public class TSListener implements Listener {
                             teamEntry.updateRaceProgress(1, 0);
                         }
                     }
-                    
+
                     ApiUtilities.msgConsole("Starting : " + player.getName() + " in " + heat.getName());
                     if (heat.getGhostingDelta() != null) {
                         checkDeltas(driver);
@@ -727,7 +733,7 @@ public class TSListener implements Listener {
                     }
                     heat.passLap(driver, e.getFrom(), e.getTo(), r);
                     heat.updatePositions();
-                    
+
                     if (heat.isBoatSwitchingEnabled()) {
                         var maybeTeamEntry = heat.getTeamEntryByPlayer(player.getUniqueId());
                         if (maybeTeamEntry.isPresent()) {
@@ -735,7 +741,7 @@ public class TSListener implements Listener {
                             teamEntry.updateRaceProgress(driver.getLaps().size(), 0);
                         }
                     }
-                    
+
                     if (heat.getGhostingDelta() != null) {
                         checkDeltas(driver);
                     }
@@ -757,7 +763,7 @@ public class TSListener implements Listener {
                     }
                     heat.passLap(driver, e.getFrom(), e.getTo(), r);
                     heat.updatePositions();
-                    
+
                     if (heat.isBoatSwitchingEnabled()) {
                         var maybeTeamEntry = heat.getTeamEntryByPlayer(player.getUniqueId());
                         if (maybeTeamEntry.isPresent()) {
@@ -765,7 +771,7 @@ public class TSListener implements Listener {
                             teamEntry.updateRaceProgress(driver.getLaps().size(), 0);
                         }
                     }
-                    
+
                     return;
                 }
             }
@@ -852,7 +858,7 @@ public class TSListener implements Listener {
                 long tickDurationNanos = 50_000_000L;
                 long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
                 preciseTime = preciseTime.minusNanos(adjustmentNanos);
-                
+
                 new DriverPassCheckpointEvent(driver, lap, maybeCheckpoint.get(), preciseTime).callEvent();
             } else if (maybeCheckpoint.isPresent() && maybeCheckpoint.get().getRegionIndex() > lap.getNextCheckpoint()) {
                 if (!track.getTrackOptions().hasOption(TrackOption.NO_RESET_ON_FUTURE_CHECKPOINT)) {
@@ -866,23 +872,23 @@ public class TSListener implements Listener {
     /**
      * Calculates the proportion of the movement vector where the player enters the region
      * using binary search with 15 iterations for precision.
-     * 
+     *
      * @param from The starting location of the movement
-     * @param to The ending location of the movement  
+     * @param to The ending location of the movement
      * @param region The region being entered
      * @return A value between 0.0 and 1.0 representing how far through the movement the entry occurred
      */
     private static double calculateRegionEntryProportion(org.bukkit.Location from, org.bukkit.Location to, TrackRegion region) {
         double low = 0.0;
         double high = 1.0;
-        
+
         // Binary search with 15 iterations for precision
         for (int i = 0; i < 15; i++) {
             double mid = (low + high) / 2.0;
-            
+
             // Calculate the interpolated position at the midpoint
             org.bukkit.Location midLocation = interpolateLocation(from, to, mid);
-            
+
             if (region.contains(midLocation)) {
                 // If the midpoint is inside the region, the entry point is earlier in the movement
                 high = mid;
@@ -891,14 +897,14 @@ public class TSListener implements Listener {
                 low = mid;
             }
         }
-        
+
         // Return the final proportion (closer to the actual entry point)
         return (low + high) / 2.0;
     }
-    
+
     /**
      * Interpolates between two locations based on a proportion value.
-     * 
+     *
      * @param from The starting location
      * @param to The ending location
      * @param proportion A value between 0.0 and 1.0
@@ -908,7 +914,7 @@ public class TSListener implements Listener {
         double x = from.getX() + (to.getX() - from.getX()) * proportion;
         double y = from.getY() + (to.getY() - from.getY()) * proportion;
         double z = from.getZ() + (to.getZ() - from.getZ()) * proportion;
-        
+
         return new org.bukkit.Location(from.getWorld(), x, y, z);
     }
 }

@@ -19,13 +19,14 @@ import java.util.Map;
 
 @CommandAlias("parts")
 public class CommandParts extends BaseCommand {
-    @Subcommand("create OARS|HULL|RUDDER")
+    @Subcommand("create")
     @CommandCompletion("<name>")
     @CommandPermission("%permissiontimingsystem_part_create")
     public void create(CommandSender sender,PartCategory category, String name){
         Theme theme = Theme.getTheme(sender);
 
-        Part lePart = new Part(name);
+        Part lePart = new Part();
+        lePart.setName(name);
         lePart.setCategoryName(category);
 
         PartManager.addPart(lePart);

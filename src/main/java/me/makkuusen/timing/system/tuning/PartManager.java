@@ -15,22 +15,7 @@ public class PartManager {
     private static Map<String, Part> parts = new HashMap<>();
 
     public PartManager(){
-        Part StockOars = new Part();
-        Part StockRudder = new Part();
-        Part StockHull = new Part();
 
-        StockOars.setName("Stock Oars");
-        StockRudder.setName("Stock Rudder");
-        StockHull.setName("Stock Hull");
-
-
-        StockOars.setCategoryName(PartCategory.OARS);
-        StockRudder.setCategoryName(PartCategory.RUDDER);
-        StockHull.setCategoryName(PartCategory.HULL);
-
-        parts.put("1", StockOars);
-        parts.put("2", StockRudder);
-        parts.put("3", StockHull);
     }
 
     public static boolean addPart(Part part){

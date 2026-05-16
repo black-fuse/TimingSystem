@@ -12,6 +12,7 @@ import me.makkuusen.timing.system.tuning.PartCategory;
 import me.makkuusen.timing.system.tuning.PartManager;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
+import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
 
 import java.util.Arrays;
@@ -30,6 +31,7 @@ public class CommandParts extends BaseCommand {
         lePart.setCategoryName(category);
 
         PartManager.addPart(lePart);
+        PartManager.saveParts();
         sender.sendMessage(Component.text("part was added").color(theme.getSuccess()));
     }
 
@@ -57,6 +59,7 @@ public class CommandParts extends BaseCommand {
             return;
         }
         sender.sendMessage(Component.text("Part deleted").color(theme.getSuccess()));
+        PartManager.saveParts();
     }
 
     @Subcommand("manage")
@@ -88,6 +91,7 @@ public class CommandParts extends BaseCommand {
         for (Attribute attribute : attributes.keySet()){
             sendTuningAttribute(sender, workingPart, attribute);
         }
+        PartManager.saveParts();
     }
 
 
@@ -100,10 +104,12 @@ public class CommandParts extends BaseCommand {
 
         thePart.setDescription(String.join(" ", description));
         sender.sendMessage(Component.text(thePart.getName() + "'s description was changed").color(theme.getSuccess()));
+        PartManager.saveParts();
+
     }
 
     @Subcommand("set attribute")
-    @CommandCompletion("@parts")
+    @CommandCompletion("@parts @tuningAttributes")
     @CommandPermission("%permissiontimingsystem_part_manage")
     public void setAttribute(CommandSender sender, String part, Attribute attribute, Integer value) {
         Theme theme = Theme.getTheme(sender);
@@ -111,6 +117,7 @@ public class CommandParts extends BaseCommand {
 
         thePart.removeAttribute(attribute); // ik its lazy but icba right now
         thePart.addAttribute(attribute, value);
+        PartManager.saveParts();
         sender.sendMessage(Component.text(thePart.getName() + "'s " + attribute.toString() + " has been set to " + value.toString()).color(theme.getSuccess()));
     }
 
@@ -122,7 +129,22 @@ public class CommandParts extends BaseCommand {
         Part thePart = PartManager.getPartByName(part);
 
         thePart.setRating(value);
+        PartManager.saveParts();
         sender.sendMessage(Component.text(thePart.getName() + "'s rating was set to " + value.toString()).color(theme.getSuccess()));
+    }
+
+    @Subcommand("set item")
+    @CommandCompletion("@parts @materials")
+    @CommandPermission("%permissiontimingsystem_part_manage")
+    public void setItem(CommandSender sender, String part, String item){
+        Theme theme = Theme.getTheme(sender);
+        Part thePart = PartManager.getPartByName(part);
+
+        Material material = Material.matchMaterial(item);
+
+        thePart.setItem(material);
+        PartManager.saveParts();
+        sender.sendMessage(Component.text(thePart.getName() + "'s item was set to " + item).color(theme.getSuccess()));
     }
 
 
@@ -134,7 +156,7 @@ public class CommandParts extends BaseCommand {
                         .color(theme.getPrimary())
                                 .append(
                                         theme.getBrackets(Component.text(part.getValue(attribute).toString())
-                                                .clickEvent(ClickEvent.suggestCommand("/parts set attribute \"" + part.getName() + "\" " + attribute.name() + " ") ))
+                                                .clickEvent(ClickEvent.suggestCommand("/parts set attribute " + part.getName() + " " + attribute.name() + " ") ))
                                         );
 
         sender.sendMessage(toSend);

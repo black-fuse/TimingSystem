@@ -265,6 +265,7 @@ public class CommandTeam extends BaseCommand {
     @Description("Configure team tuning")
     public void onTuning(Player player, CommandSender sender, Team team){
         new BoatSetupGui(TSDatabase.getPlayer(player.getUniqueId()), team).show(player);
+        applyLiveTuningIfActive(team);
 //        Theme theme = Theme.getTheme(sender);
 
 //        sender.sendMessage(

@@ -1,7 +1,6 @@
 package me.makkuusen.timing.system.team;
 
 import com.google.gson.Gson;
-import com.google.gson.reflect.TypeToken;
 import lombok.Getter;
 import lombok.Setter;
 import me.makkuusen.timing.system.TimingSystem;
@@ -9,9 +8,7 @@ import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
 import me.makkuusen.timing.system.tuning.PartCategory;
 import me.makkuusen.timing.system.tuning.PartManager;
-import org.w3c.dom.Attr;
 
-import java.lang.reflect.Type;
 import java.util.*;
 
 @Getter
@@ -49,10 +46,10 @@ public class TeamTuning {
             new TuningAttribute("defaultSlipperiness", (short)2, 0.6f, "speed", 1.0f));
 
         AVAILABLE_ATTRIBUTES.put(Attribute.PACKED_ICE_SLIPPERINESS,
-            new TuningAttribute("packedIceSlipperiness", (short)3, 0.98f, "speed", -0.1f));
+            new TuningAttribute("packedIceSlipperiness", (short)3, 0.98f, "speed", 0.1f));
 
         AVAILABLE_ATTRIBUTES.put(Attribute.BLUE_ICE_SLIPPERINESS,
-            new TuningAttribute("blueIceSlipperiness", (short)3, 0.989f, "speed", -0.1f));
+            new TuningAttribute("blueIceSlipperiness", (short)3, 0.989f, "speed", 0.1f));
 
         // --- Handling ---
         AVAILABLE_ATTRIBUTES.put(Attribute.YAW_ACCEL,
@@ -90,18 +87,27 @@ public class TeamTuning {
 
                 int value = part.getValue(attr);
 
+                // there is probbably a better way of doing this but i'm tired
+                int toReplace;
+                try{
+                    toReplace = attributes.get(attr);
+                } catch (Exception e) {
+                    toReplace = BASE_STAT_VALUE;
+                }
+
                 attributes.put(
                         attr,
-                        attributes.get(attr) + value
+                        toReplace + value
                 );
             }
         }
     }
 
     public void resetAttributes(){
+        Set<Attribute> keySet = attributes.keySet();
         attributes.clear();
-        for (Attribute attr : attributes.keySet()){
-            attributes.put(attr, 5);
+        for (Attribute attr : keySet){
+            attributes.put(attr, BASE_STAT_VALUE);
         }
     }
 
@@ -147,21 +153,6 @@ public class TeamTuning {
     
     public boolean isValid() {
         return getTotalPoints() <= MAX_TOTAL_POINTS;
-    }
-
-    // applies parts to the overall tuning attribute
-    public void applyParts(){
-        for (Part part : equippedParts.values()){
-            Map<Attribute, Integer> attributes = part.getAttributes();
-
-            for (Attribute attr : attributes.keySet()){
-                Integer times = attributes.get(attr);
-
-                for (int x = 0; x < times; x++){
-                    increaseAttribute(attr);
-                }
-            }
-        }
     }
 
     public String toJson() {

@@ -5,6 +5,7 @@ import lombok.Setter;
 import me.makkuusen.timing.system.ItemBuilder;
 import me.makkuusen.timing.system.tplayer.TPlayer;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
@@ -35,13 +36,13 @@ public class Part {
         this.id = UUID.randomUUID().toString();
         this.rating = 0;
 
-        addAttribute(Attribute.FORWARD_ACCEL, 5);
-        addAttribute(Attribute.YAW_ACCEL, 5);
-        addAttribute(Attribute.DEFAULT_SLIPPERINESS, 5);
-        addAttribute(Attribute.PACKED_ICE_SLIPPERINESS, 5);
-        addAttribute(Attribute.BLUE_ICE_SLIPPERINESS, 5);
-        addAttribute(Attribute.TURNING_FORWARD_ACCEL, 5);
-        addAttribute(Attribute.BACKWARD_ACCEL, 5);
+        addAttribute(Attribute.FORWARD_ACCEL, 0);
+        addAttribute(Attribute.YAW_ACCEL, 0);
+        addAttribute(Attribute.DEFAULT_SLIPPERINESS, 0);
+        addAttribute(Attribute.PACKED_ICE_SLIPPERINESS, 0);
+        addAttribute(Attribute.BLUE_ICE_SLIPPERINESS, 0);
+        addAttribute(Attribute.TURNING_FORWARD_ACCEL, 0);
+        addAttribute(Attribute.BACKWARD_ACCEL, 0);
     }
 
     public void addAttribute(Attribute name, Integer value){
@@ -64,12 +65,29 @@ public class Part {
         if (this.item == null){
             return new ItemBuilder(Material.PUFFERFISH).setName(this.getName()).build();
         }
-        ItemStack Item = new ItemBuilder(this.item).setName(this.getName()).build();
+
+        NamedTextColor nameColor;
+
+        if (rating > 400){
+            nameColor = NamedTextColor.RED;
+        }
+        else if (rating > 300){
+            nameColor = NamedTextColor.YELLOW;
+        }
+        else if (rating > 200){
+            nameColor = NamedTextColor.GREEN;
+        }
+        else{
+            nameColor = NamedTextColor.WHITE;
+        }
+
+
+        ItemStack Item = new ItemBuilder(this.item).setName(Component.text(this.getName()).color(nameColor) ).build();
 
         List<Component> loreToSet = new ArrayList<>();
 
         loreToSet.add(Component.text(this.getDescription()));
-        loreToSet.add(Component.text("rating: " + getRating()));
+        loreToSet.add(Component.text("rating: " + getRating()).color(NamedTextColor.YELLOW));
 
         for (Attribute thing : this.attributes.keySet()){
             loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]"));

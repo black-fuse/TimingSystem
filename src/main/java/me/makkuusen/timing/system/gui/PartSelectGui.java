@@ -41,7 +41,7 @@ public class PartSelectGui extends BaseGui{
     private void setButtons(TPlayer tPlayer, PartCategory category){
         setItem(getCategoryButton(tPlayer, category), 0);
 
-        int x = 10;
+        int x = 9;
 
         for (Part part : PartManager.getParts()){
             if (part.getCategoryName() == category){

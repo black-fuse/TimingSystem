@@ -1,16 +1,22 @@
 package me.makkuusen.timing.system.gui;
 
 import me.makkuusen.timing.system.ItemBuilder;
+import me.makkuusen.timing.system.database.EventDatabase;
+import me.makkuusen.timing.system.heat.Heat;
+import me.makkuusen.timing.system.participant.Driver;
 import me.makkuusen.timing.system.sounds.PlaySound;
 import me.makkuusen.timing.system.team.Team;
 import me.makkuusen.timing.system.team.TeamTuning;
 import me.makkuusen.timing.system.theme.Text;
 import me.makkuusen.timing.system.theme.messages.Gui;
 import me.makkuusen.timing.system.tplayer.TPlayer;
+import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
 import me.makkuusen.timing.system.tuning.PartCategory;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Material;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -38,7 +44,14 @@ public class BoatSetupGui extends BaseGui{
             rating += part.getRating();
         }
 
-        loreToSet.add(Component.text("rating: " + rating));
+        loreToSet.add(Component.text("rating: " + rating).color(NamedTextColor.YELLOW));
+
+        applyLiveTuningIfActive(team);
+        tuning.getAttributes();
+
+        for (Attribute thing : tuning.getAttributes().keySet()){
+            loreToSet.add(Component.text(thing.toString() +": [" + tuning.getAttributes().get(thing) + "]").color(NamedTextColor.WHITE));
+        }
 
         ItemStack Item = new ItemBuilder(Material.OAK_BOAT).setName(team.getName() + " tuning" ).build();
 
@@ -60,16 +73,16 @@ public class BoatSetupGui extends BaseGui{
     public GuiButton getCategoryButton(TPlayer tPlayer, PartCategory category){
         TeamTuning tuning = team.getTuning();
         Part currentlyEquipped = tuning.getEquippedParts().get(category);
-
+        GuiButton button;
         if (currentlyEquipped == null){
-            return new GuiButton(
+            button = new GuiButton(
                     new ItemBuilder(category.getMaterial())
                             .setName("Empty " + category)
                             .build()
             );
+        } else{
+            button = new GuiButton(currentlyEquipped.getItem(tPlayer));
         }
-
-        var button = new GuiButton(currentlyEquipped.getItem(tPlayer));
 
         button.setAction(() -> new PartSelectGui(tPlayer, team, category).show(tPlayer.getPlayer()));
         return button;
@@ -83,6 +96,24 @@ public class BoatSetupGui extends BaseGui{
         for (PartCategory category : PartCategory.values()){
             setItem(getCategoryButton(tPlayer, category), x);
             x++;
+        }
+    }
+
+    public void applyLiveTuningIfActive(Team team) {
+        // For each online player on the team
+        for (TPlayer tPlayer : team.getPlayers()) {
+            Player player = tPlayer.getPlayer();
+            if (player == null) continue; // Offline
+
+            // Check if they're in an active heat (O(1) lookup)
+            Driver driver = EventDatabase.playerInRunningHeat.get(player.getUniqueId());
+            if (driver == null) continue; // Not racing
+
+            Heat heat = driver.getHeat();
+            if (!heat.getLiveTuningEnabled()) continue; // Live tuning disabled
+
+            // Apply the updated tuning immediately
+            heat.applyTuningToPlayer(player, team.getTuning());
         }
     }
 }

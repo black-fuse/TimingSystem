@@ -27,7 +27,7 @@ public class Part {
     public Integer rating;
     @Getter
     @Setter
-    private String description;
+    private String description = "replace me";
     @Setter
     private Material item;
     private Map<Attribute, Integer> attributes = new HashMap<>();
@@ -68,13 +68,16 @@ public class Part {
 
         NamedTextColor nameColor;
 
-        if (rating > 400){
+        if (rating > 800){
+            nameColor = NamedTextColor.DARK_BLUE;
+        }
+        else if (rating > 400){
             nameColor = NamedTextColor.RED;
         }
-        else if (rating > 300){
+        else if (rating > 200){
             nameColor = NamedTextColor.YELLOW;
         }
-        else if (rating > 200){
+        else if (rating > 5){
             nameColor = NamedTextColor.GREEN;
         }
         else{
@@ -90,7 +93,7 @@ public class Part {
         loreToSet.add(Component.text("rating: " + getRating()).color(NamedTextColor.YELLOW));
 
         for (Attribute thing : this.attributes.keySet()){
-            loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]"));
+            loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]").color(NamedTextColor.GRAY));
         }
 
         ItemMeta im = Item.getItemMeta();
@@ -100,7 +103,6 @@ public class Part {
             im.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
             im.addItemFlags(ItemFlag.HIDE_DYE);
             im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
-            im.displayName(Component.text(this.getName()).color(tPlayer.getTheme().getSecondary()));
             im.lore(loreToSet);
             Item.setItemMeta(im);
         }

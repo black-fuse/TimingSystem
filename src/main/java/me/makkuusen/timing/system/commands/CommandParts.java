@@ -5,6 +5,9 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Subcommand;
+import me.makkuusen.timing.system.gui.BoatSetupGui;
+import me.makkuusen.timing.system.team.Team;
+import me.makkuusen.timing.system.team.TeamManager;
 import me.makkuusen.timing.system.theme.Theme;
 import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
@@ -21,7 +24,7 @@ import java.util.Map;
 @CommandAlias("parts")
 public class CommandParts extends BaseCommand {
     @Subcommand("create")
-    @CommandCompletion("<name>")
+    @CommandCompletion("OARS|HULL|RUDDER <name>")
     @CommandPermission("%permissiontimingsystem_part_create")
     public void create(CommandSender sender,PartCategory category, String name){
         Theme theme = Theme.getTheme(sender);
@@ -119,6 +122,10 @@ public class CommandParts extends BaseCommand {
         thePart.addAttribute(attribute, value);
         PartManager.saveParts();
         sender.sendMessage(Component.text(thePart.getName() + "'s " + attribute.toString() + " has been set to " + value.toString()).color(theme.getSuccess()));
+
+        for (Team team : TeamManager.getAllTeams()){
+            BoatSetupGui.applyLiveTuningIfActive(team);
+        }
     }
 
     @Subcommand("set rating")

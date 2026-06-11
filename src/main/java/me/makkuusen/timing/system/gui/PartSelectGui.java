@@ -10,12 +10,15 @@ import me.makkuusen.timing.system.tuning.PartCategory;
 import me.makkuusen.timing.system.tuning.PartManager;
 import net.kyori.adventure.text.Component;
 
+import java.util.Comparator;
+import java.util.List;
+
 
 public class PartSelectGui extends BaseGui{
     private final Team team;
 
     public PartSelectGui(TPlayer tPlayer, Team team, PartCategory category){
-        super(Component.text(category.toString()), 3);
+        super(Component.text(category.toString()), 6);
         this.team = team;
         setButtons(tPlayer, category);
     }
@@ -43,11 +46,14 @@ public class PartSelectGui extends BaseGui{
 
         int x = 9;
 
-        for (Part part : PartManager.getParts()){
-            if (part.getCategoryName() == category){
-                setItem(getPartButton(tPlayer, part), x);
-                x++;
-            }
+        List<Part> sortedParts = PartManager.getParts().stream()
+                .filter(part -> part.getCategoryName() == category)
+                .sorted(Comparator.comparingInt(Part::getRating))
+                .toList();
+
+        for (Part part : sortedParts){
+            setItem(getPartButton(tPlayer, part), x);
+            x++;
         }
     }
 }

@@ -99,7 +99,7 @@ public class BoatSetupGui extends BaseGui{
         }
     }
 
-    public void applyLiveTuningIfActive(Team team) {
+    public static void applyLiveTuningIfActive(Team team) {
         // For each online player on the team
         for (TPlayer tPlayer : team.getPlayers()) {
             Player player = tPlayer.getPlayer();

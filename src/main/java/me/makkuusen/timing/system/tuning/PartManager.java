@@ -25,7 +25,8 @@ public class PartManager {
         return true;
     }
 
-    public static boolean removePart(String id){
+    public static boolean removePart(String name){
+        String id = getPartByName(name).getId();
         return parts.remove(id) != null;
     }
 

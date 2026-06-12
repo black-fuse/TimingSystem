@@ -10,6 +10,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.w3c.dom.Attr;
 
 import java.util.*;
 
@@ -43,6 +44,10 @@ public class Part {
         addAttribute(Attribute.BLUE_ICE_SLIPPERINESS, 0);
         addAttribute(Attribute.TURNING_FORWARD_ACCEL, 0);
         addAttribute(Attribute.BACKWARD_ACCEL, 0);
+        addAttribute(Attribute.SCALE, 0);
+        addAttribute(Attribute.MAX_SPEED, 0);
+        addAttribute(Attribute.MAX_SPEED_RESISTANCE, 0);
+        addAttribute(Attribute.BRAKE_SLIPPERINESS, 0);
     }
 
     public void addAttribute(Attribute name, Integer value){

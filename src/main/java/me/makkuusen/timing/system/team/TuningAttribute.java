@@ -35,6 +35,11 @@ public class TuningAttribute {
             // Per-block slipperiness: fall back to vanilla, track mode doesn't expose these easily
             case "packedIceSlipperiness"       -> mode.getBlocksSlipperiness().getOrDefault("minecraft:packed_ice", vanillaDefault);
             case "blueIceSlipperiness"         -> mode.getBlocksSlipperiness().getOrDefault("minecraft:blue_ice", vanillaDefault);
+
+            case "scale"                       -> mode.getScale();
+            case "maxSpeed"                    -> mode.getMaxSpeed();
+            case "maxSpeedResistance"          -> mode.getMaxSpeedResistance();
+            case "brakeSlipperiness"           -> mode.getBrakeSlipperiness();
             default                            -> vanillaDefault;
         };
     }

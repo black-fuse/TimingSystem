@@ -8,6 +8,7 @@ import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
 import me.makkuusen.timing.system.tuning.PartCategory;
 import me.makkuusen.timing.system.tuning.PartManager;
+import org.w3c.dom.Attr;
 
 import java.util.*;
 
@@ -54,6 +55,19 @@ public class TeamTuning {
         // --- Handling ---
         AVAILABLE_ATTRIBUTES.put(Attribute.YAW_ACCEL,
             new TuningAttribute("yawAcceleration", (short)10, 1.0f, "handling", 9.0f));
+
+        // --- new stuff i'll move later ---
+        AVAILABLE_ATTRIBUTES.put(Attribute.SCALE,
+                new TuningAttribute("scale", (short)36, 1.0f, "handling", 0.1f));
+
+        AVAILABLE_ATTRIBUTES.put(Attribute.MAX_SPEED,
+                new TuningAttribute("maxSpeed", (short)45, 5.0f, "speed", 1.0f));
+
+        AVAILABLE_ATTRIBUTES.put(Attribute.MAX_SPEED_RESISTANCE,
+                new TuningAttribute("maxSpeedResistance", (short)46, 1.0f, "speed", 1.0f));
+
+        AVAILABLE_ATTRIBUTES.put(Attribute.BRAKE_SLIPPERINESS,
+                new TuningAttribute("brakeSlipperiness", (short)41, 1.0f, "speed", 0.1f));
     }
 
 

@@ -5,10 +5,14 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Subcommand;
+import me.makkuusen.timing.system.database.EventDatabase;
 import me.makkuusen.timing.system.gui.BoatSetupGui;
+import me.makkuusen.timing.system.heat.Heat;
+import me.makkuusen.timing.system.participant.Driver;
 import me.makkuusen.timing.system.team.Team;
 import me.makkuusen.timing.system.team.TeamManager;
 import me.makkuusen.timing.system.theme.Theme;
+import me.makkuusen.timing.system.tplayer.TPlayer;
 import me.makkuusen.timing.system.tuning.Attribute;
 import me.makkuusen.timing.system.tuning.Part;
 import me.makkuusen.timing.system.tuning.PartCategory;
@@ -17,6 +21,7 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Material;
 import org.bukkit.command.CommandSender;
+import org.bukkit.entity.Player;
 
 import java.util.Arrays;
 import java.util.Map;
@@ -63,6 +68,7 @@ public class CommandParts extends BaseCommand {
         }
         sender.sendMessage(Component.text("Part deleted").color(theme.getSuccess()));
         PartManager.saveParts();
+        applyLiveTuningIfActive(sender);
     }
 
     @Subcommand("manage")
@@ -85,16 +91,17 @@ public class CommandParts extends BaseCommand {
         );
 
         // Description
-        sender.sendMessage(Component.text(workingPart.getDescription() == null ? "No Description" : workingPart.getDescription()).clickEvent(ClickEvent.suggestCommand("/parts set description \"" + name + "\" ")));
+        sender.sendMessage(Component.text(workingPart.getDescription() == null ? "No Description" : workingPart.getDescription()).clickEvent(ClickEvent.suggestCommand("/parts set description " + name + " ")));
 
         //rating
-        sender.sendMessage(Component.text(workingPart.getRating()).clickEvent(ClickEvent.suggestCommand("/parts set rating \"" + name + "\" ")));
+        sender.sendMessage(Component.text(workingPart.getRating()).clickEvent(ClickEvent.suggestCommand("/parts set rating " + name + " ")));
 
         // attributes
         for (Attribute attribute : attributes.keySet()){
             sendTuningAttribute(sender, workingPart, attribute);
         }
         PartManager.saveParts();
+        applyLiveTuningIfActive(sender);
     }
 
 
@@ -109,6 +116,7 @@ public class CommandParts extends BaseCommand {
         sender.sendMessage(Component.text(thePart.getName() + "'s description was changed").color(theme.getSuccess()));
         PartManager.saveParts();
 
+        applyLiveTuningIfActive(sender);
     }
 
     @Subcommand("set attribute")
@@ -126,6 +134,7 @@ public class CommandParts extends BaseCommand {
         for (Team team : TeamManager.getAllTeams()){
             BoatSetupGui.applyLiveTuningIfActive(team);
         }
+        applyLiveTuningIfActive(sender);
     }
 
     @Subcommand("set rating")
@@ -138,6 +147,7 @@ public class CommandParts extends BaseCommand {
         thePart.setRating(value);
         PartManager.saveParts();
         sender.sendMessage(Component.text(thePart.getName() + "'s rating was set to " + value.toString()).color(theme.getSuccess()));
+        applyLiveTuningIfActive(sender);
     }
 
     @Subcommand("set item")
@@ -167,6 +177,19 @@ public class CommandParts extends BaseCommand {
                                         );
 
         sender.sendMessage(toSend);
+    }
+
+    public void applyLiveTuningIfActive(CommandSender sender) {
+        if (!(sender instanceof Player player)) return;
+
+        Driver driver = EventDatabase.playerInRunningHeat.get(player.getUniqueId());
+        if (driver == null) return;
+
+        Heat heat = driver.getHeat();
+        if (!heat.getLiveTuningEnabled()) return; // Live tuning disabled
+
+        // Apply the updated tuning immediately
+        heat.applyTeamTuning();
     }
 
 }

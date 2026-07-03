@@ -76,13 +76,16 @@ public class Part {
         if (rating > 800){
             nameColor = NamedTextColor.DARK_BLUE;
         }
-        else if (rating > 400){
+        else if (rating > 500){
             nameColor = NamedTextColor.RED;
         }
-        else if (rating > 200){
+        else if (rating > 300){
+            nameColor = NamedTextColor.GOLD;
+        }
+        else if (rating > 100){
             nameColor = NamedTextColor.YELLOW;
         }
-        else if (rating > 5){
+        else if (rating > 1){
             nameColor = NamedTextColor.GREEN;
         }
         else{
@@ -98,7 +101,9 @@ public class Part {
         loreToSet.add(Component.text("rating: " + getRating()).color(NamedTextColor.YELLOW));
 
         for (Attribute thing : this.attributes.keySet()){
-            loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]").color(NamedTextColor.GRAY));
+            if (attributes.get(thing) != 0){
+                loreToSet.add(Component.text(thing.toString() +": [" + attributes.get(thing) + "]").color(NamedTextColor.GRAY));
+            }
         }
 
         ItemMeta im = Item.getItemMeta();

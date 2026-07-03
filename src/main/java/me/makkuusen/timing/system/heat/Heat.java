@@ -844,7 +844,7 @@ public class Heat {
 
     public void applyTuningToPlayer(Player player, TeamTuning tuning) {
         Track track = getEvent().getTrack();
-        float effectPercent = TimingSystem.configuration.getTuningEffect() / 100.0f;
+        float effectPercent = TimingSystem.configuration.getTuningEffect() / 200.0f;
         int baseStat = TeamTuning.BASE_STAT_VALUE;
 
         // Apply base track mode first

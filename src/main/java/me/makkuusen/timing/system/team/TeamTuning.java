@@ -58,10 +58,9 @@ public class TeamTuning {
 
         // --- new stuff i'll move later ---
         AVAILABLE_ATTRIBUTES.put(Attribute.SCALE,
-                new TuningAttribute("scale", (short)36, 1.0f, "handling", 0.1f));
-
+                new TuningAttribute("scale", (short)36, 1.0f, "handling", 1.0f));
         AVAILABLE_ATTRIBUTES.put(Attribute.MAX_SPEED,
-                new TuningAttribute("maxSpeed", (short)45, 5.0f, "speed", 1.0f));
+                new TuningAttribute("maxSpeed", (short)45, 3.0f, "speed", 1.0f));
 
         AVAILABLE_ATTRIBUTES.put(Attribute.MAX_SPEED_RESISTANCE,
                 new TuningAttribute("maxSpeedResistance", (short)46, 1.0f, "speed", 1.0f));

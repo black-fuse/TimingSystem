@@ -718,16 +718,25 @@ public class TSListener implements Listener {
                 } else if (driver.getState() == DriverState.RESET) {
                     driver.resetQualyLap(e.getFrom(), e.getTo(), r);
                     heat.updatePositions();
+                    if (heat.getEvent().getTuningEnabled()){
+                        heat.applyTeamTuning();
+                    }
                     return;
                 } else if (driver.getState() == DriverState.LAPRESET) {
                     driver.lapReset(e.getFrom(), e.getTo(), r);
                     heat.updatePositions();
+                    if (heat.getEvent().getTuningEnabled()){
+                        heat.applyTeamTuning();
+                    }
                     return;
                 } else if (driver.getCurrentLap() != null && driver.getCurrentLap().getLatestCheckpoint() != 0) {
                     if (!driver.getCurrentLap().hasPassedAllCheckpoints()) {
                         int checkpoint = driver.getCurrentLap().getLatestCheckpoint();
                         performInHeatReset(driver);
                         Text.send(driver.getTPlayer().getPlayer(), Error.MISSED_CHECKPOINTS);
+                        if (heat.getEvent().getTuningEnabled()){
+                            heat.applyTeamTuning();
+                        }
 
                         return;
                     }
@@ -739,6 +748,9 @@ public class TSListener implements Listener {
                         if (maybeTeamEntry.isPresent()) {
                             var teamEntry = maybeTeamEntry.get();
                             teamEntry.updateRaceProgress(driver.getLaps().size(), 0);
+                        }
+                        if (heat.getEvent().getTuningEnabled()){
+                            heat.applyTeamTuning();
                         }
                     }
                     

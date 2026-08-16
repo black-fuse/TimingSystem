@@ -160,13 +160,8 @@ public class TimeTrial {
     }
 
     public void playerPassingNextCheckpoint(Location from, Location to, TrackRegion checkpoint) {
-        // Calculate precise timing by finding the exact point where player enters the checkpoint
-        Instant preciseTime = TimingSystem.currentTime;
-        double proportion = calculateRegionEntryProportion(from, to, checkpoint);
-        long tickDurationNanos = 50_000_000L; // 50ms in nanoseconds (1 tick = 50ms)
-        long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
-        preciseTime = preciseTime.minusNanos(adjustmentNanos);
-        
+        Instant preciseTime = ApiUtilities.getPreciseRegionEntryTime(from, to, checkpoint);
+
         passNextCheckpoint(preciseTime);
         long timeSinceStart = getTimeSinceStart(preciseTime);
         if (tPlayer.getSettings().isVerbose()) {
@@ -235,12 +230,7 @@ public class TimeTrial {
     }
 
     public void playerEndedMap(Location from, Location to, TrackRegion endRegion) {
-        // Calculate precise timing by finding the exact point where player enters the end region
-        Instant preciseEndTime = TimingSystem.currentTime;
-        double proportion = calculateRegionEntryProportion(from, to, endRegion);
-        long tickDurationNanos = 50_000_000L; // 50ms in nanoseconds (1 tick = 50ms)
-        long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
-        preciseEndTime = preciseEndTime.minusNanos(adjustmentNanos);
+        Instant preciseEndTime = ApiUtilities.getPreciseRegionEntryTime(from, to, endRegion);
 
         Player player = tPlayer.getPlayer();
 
@@ -270,12 +260,7 @@ public class TimeTrial {
     }
 
     public void playerRestartMap(Location from, Location to, TrackRegion startRegion) {
-        // Calculate precise timing by finding the exact point where player enters the start region
-        Instant preciseEndTime = TimingSystem.currentTime;
-        double proportion = calculateRegionEntryProportion(from, to, startRegion);
-        long tickDurationNanos = 50_000_000L; // 50ms in nanoseconds (1 tick = 50ms)
-        long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
-        preciseEndTime = preciseEndTime.minusNanos(adjustmentNanos);
+        Instant preciseEndTime = ApiUtilities.getPreciseRegionEntryTime(from, to, startRegion);
 
         Player player = tPlayer.getPlayer();
 
@@ -433,52 +418,4 @@ public class TimeTrial {
         return Component.empty();
     }
 
-    /**
-     * Calculates the proportion of the movement vector where the player enters the region
-     * using binary search with 15 iterations for precision.
-     * 
-     * @param from The starting location of the movement
-     * @param to The ending location of the movement  
-     * @param region The region being entered
-     * @return A value between 0.0 and 1.0 representing how far through the movement the entry occurred
-     */
-    private static double calculateRegionEntryProportion(org.bukkit.Location from, org.bukkit.Location to, me.makkuusen.timing.system.track.regions.TrackRegion region) {
-        double low = 0.0;
-        double high = 1.0;
-        
-        // Binary search with 15 iterations for precision
-        for (int i = 0; i < 15; i++) {
-            double mid = (low + high) / 2.0;
-            
-            // Calculate the interpolated position at the midpoint
-            org.bukkit.Location midLocation = interpolateLocation(from, to, mid);
-            
-            if (region.contains(midLocation)) {
-                // If the midpoint is inside the region, the entry point is earlier in the movement
-                high = mid;
-            } else {
-                // If the midpoint is outside the region, the entry point is later in the movement
-                low = mid;
-            }
-        }
-        
-        // Return the final proportion (closer to the actual entry point)
-        return (low + high) / 2.0;
-    }
-    
-    /**
-     * Interpolates between two locations based on a proportion value.
-     * 
-     * @param from The starting location
-     * @param to The ending location
-     * @param proportion A value between 0.0 and 1.0
-     * @return The interpolated location
-     */
-    private static org.bukkit.Location interpolateLocation(org.bukkit.Location from, org.bukkit.Location to, double proportion) {
-        double x = from.getX() + (to.getX() - from.getX()) * proportion;
-        double y = from.getY() + (to.getY() - from.getY()) * proportion;
-        double z = from.getZ() + (to.getZ() - from.getZ()) * proportion;
-        
-        return new org.bukkit.Location(from.getWorld(), x, y, z);
-    }
 }

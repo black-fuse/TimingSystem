@@ -547,13 +547,7 @@ public class TSListener implements Listener {
                     Track track_ = maybeTrack.get();
 
                     if (track_.isTimeTrial()) {
-                        Instant now = TimingSystem.currentTime;
-                        
-                        double proportion = calculateRegionEntryProportion(e.getFrom(), e.getTo(), region);
-                        long tickDurationNanos = 50_000_000L; // 50ms in nanoseconds (1 tick = 50ms)
-                        long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
-                        now = now.minusNanos(adjustmentNanos);
-                        
+                        Instant now = ApiUtilities.getPreciseRegionEntryTime(e.getFrom(), e.getTo(), region);
                         TimeTrial timeTrial = new TimeTrial(track_, TSDatabase.getPlayer(player.getUniqueId()), now);
                         timeTrial.playerStartingTimeTrial();
                         TimeTrialController.elytraProtection.remove(player.getUniqueId());
@@ -852,13 +846,7 @@ public class TSListener implements Listener {
                     checkDeltas(driver);
                 }
 
-                // Calculate precise time for the event
-                java.time.Instant preciseTime = me.makkuusen.timing.system.TimingSystem.currentTime;
-                double proportion = calculateRegionEntryProportion(e.getFrom(), e.getTo(), maybeCheckpoint.get());
-                long tickDurationNanos = 50_000_000L;
-                long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
-                preciseTime = preciseTime.minusNanos(adjustmentNanos);
-                
+                Instant preciseTime = ApiUtilities.getPreciseRegionEntryTime(e.getFrom(), e.getTo(), maybeCheckpoint.get());
                 new DriverPassCheckpointEvent(driver, lap, maybeCheckpoint.get(), preciseTime).callEvent();
             } else if (maybeCheckpoint.isPresent() && maybeCheckpoint.get().getRegionIndex() > lap.getNextCheckpoint()) {
                 if (!track.getTrackOptions().hasOption(TrackOption.NO_RESET_ON_FUTURE_CHECKPOINT)) {
@@ -869,52 +857,4 @@ public class TSListener implements Listener {
         }
     }
 
-    /**
-     * Calculates the proportion of the movement vector where the player enters the region
-     * using binary search with 15 iterations for precision.
-     * 
-     * @param from The starting location of the movement
-     * @param to The ending location of the movement  
-     * @param region The region being entered
-     * @return A value between 0.0 and 1.0 representing how far through the movement the entry occurred
-     */
-    private static double calculateRegionEntryProportion(org.bukkit.Location from, org.bukkit.Location to, TrackRegion region) {
-        double low = 0.0;
-        double high = 1.0;
-        
-        // Binary search with 15 iterations for precision
-        for (int i = 0; i < 15; i++) {
-            double mid = (low + high) / 2.0;
-            
-            // Calculate the interpolated position at the midpoint
-            org.bukkit.Location midLocation = interpolateLocation(from, to, mid);
-            
-            if (region.contains(midLocation)) {
-                // If the midpoint is inside the region, the entry point is earlier in the movement
-                high = mid;
-            } else {
-                // If the midpoint is outside the region, the entry point is later in the movement
-                low = mid;
-            }
-        }
-        
-        // Return the final proportion (closer to the actual entry point)
-        return (low + high) / 2.0;
-    }
-    
-    /**
-     * Interpolates between two locations based on a proportion value.
-     * 
-     * @param from The starting location
-     * @param to The ending location
-     * @param proportion A value between 0.0 and 1.0
-     * @return The interpolated location
-     */
-    private static org.bukkit.Location interpolateLocation(org.bukkit.Location from, org.bukkit.Location to, double proportion) {
-        double x = from.getX() + (to.getX() - from.getX()) * proportion;
-        double y = from.getY() + (to.getY() - from.getY()) * proportion;
-        double z = from.getZ() + (to.getZ() - from.getZ()) * proportion;
-        
-        return new org.bukkit.Location(from.getWorld(), x, y, z);
-    }
 }

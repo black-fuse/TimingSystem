@@ -520,6 +520,45 @@ public class ApiUtilities {
         return mapTime;
     }
 
+    public static Instant getPreciseRegionEntryTime(Location from, Location to, TrackRegion region) {
+        Instant tickTime = TimingSystem.currentTime;
+        if (from == null || to == null || region == null) {
+            return tickTime;
+        }
+
+        double proportion = calculateRegionEntryProportion(from, to, region);
+        long tickDurationNanos = 50_000_000L; // 1 tick in nanoseconds
+        long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
+        return tickTime.minusNanos(adjustmentNanos);
+    }
+
+    private static double calculateRegionEntryProportion(Location from, Location to, TrackRegion region) {
+        double low = 0.0;
+        double high = 1.0;
+
+        for (int i = 0; i < 15; i++) {
+            double mid = (low + high) / 2.0;
+
+            Location midLocation = interpolateLocation(from, to, mid);
+
+            if (region.contains(midLocation)) {
+                high = mid;
+            } else {
+                low = mid;
+            }
+        }
+
+        return (low + high) / 2.0;
+    }
+
+    private static Location interpolateLocation(Location from, Location to, double proportion) {
+        double x = from.getX() + (to.getX() - from.getX()) * proportion;
+        double y = from.getY() + (to.getY() - from.getY()) * proportion;
+        double z = from.getZ() + (to.getZ() - from.getZ()) * proportion;
+
+        return new Location(from.getWorld(), x, y, z);
+    }
+
     public static boolean isRegionMatching(TrackRegion trackRegion, Region selection) {
         if (trackRegion instanceof TrackCuboidRegion && selection instanceof CuboidRegion) {
             return true;

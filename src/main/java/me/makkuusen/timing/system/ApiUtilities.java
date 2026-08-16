@@ -755,6 +755,10 @@ public class ApiUtilities {
     }
 
     public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart, boolean keepTimeTrial) {
+        teleportPlayerAndSpawnBoat(player, track, location, isTimeTrialStart, keepTimeTrial, null);
+    }
+
+    public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart, boolean keepTimeTrial, Runnable onTeleportComplete) {
         TaskChain<?> chain = TimingSystem.newChain();
         location.setPitch(player.getLocation().getPitch());
         boolean sameAsLastTrack = TimeTrialController.lastTimeTrialTrack.containsKey(player.getUniqueId()) && TimeTrialController.lastTimeTrialTrack.get(player.getUniqueId()).getId() == track.getId();
@@ -772,7 +776,6 @@ public class ApiUtilities {
             if (isTimeTrialStart) {
                 chain.sync(() -> Bukkit.getServer().getPluginManager().callEvent(new TimeTrialTeleportEvent(player, track)));
             }
-            chain.execute();
         } else if (track.isElytraTrack()) {
             chain.sync(() -> {
                 ItemStack chest = player.getInventory().getChestplate();
@@ -781,10 +784,12 @@ public class ApiUtilities {
                 } else if (chest.getItemMeta().hasCustomModelData() && chest.getType() == Material.ELYTRA && chest.getItemMeta().getCustomModelData() == 747) {
                     giveElytra(player);
                 }
-            }).execute();
-        } else {
-            chain.execute();
+            });
         }
+        if (onTeleportComplete != null) {
+            chain.sync(onTeleportComplete::run);
+        }
+        chain.execute();
     }
 
     private static void giveElytra(Player player) {

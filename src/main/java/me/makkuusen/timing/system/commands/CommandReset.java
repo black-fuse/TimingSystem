@@ -84,8 +84,8 @@ public class CommandReset extends BaseCommand {
         if (driver.getHeat().getRound() instanceof QualificationRound &&
                 driver.getHeat().getReset() &&
                 driver.getState() == DriverState.RUNNING) {
-            resetToTrackSpawn(driver);
             driver.setState(DriverState.RESET);
+            resetToTrackSpawn(driver);
             return;
         }
 
@@ -118,7 +118,7 @@ public class CommandReset extends BaseCommand {
 
     private static void resetToTrackSpawn(Driver driver) {
         Location spawnLocation = driver.getHeat().getEvent().getTrack().getSpawnLocation();
-        teleportPlayerToLocation(driver, spawnLocation);
+        driver.teleportForReset(spawnLocation);
     }
 
     private static Location getStartLineLocation(Driver driver) {

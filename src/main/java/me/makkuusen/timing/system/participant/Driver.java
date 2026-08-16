@@ -37,6 +37,9 @@ public class Driver extends Participant implements Comparable<Driver> {
     private DriverState state;
     private DriverScoreboard scoreboard;
     private boolean disqualified = false;
+    // True from the moment a reset/lap reset teleport is queued until the player has actually been moved.
+    // Guards against the start region triggering again while the driver is still sitting on the start line.
+    private boolean awaitingResetTeleport = false;
     private List<Lap> laps = new ArrayList<>();
 
     public Driver(DbRow data) {
@@ -197,30 +200,44 @@ public class Driver extends Participant implements Comparable<Driver> {
         ApiUtilities.msgConsole(getTPlayer().getName() + " finished lap in: " + ApiUtilities.formatAsTime(getCurrentLap().getPreciseLapTime()));
     }
 
+    public void teleportForReset(Location location) {
+        var player = getTPlayer().getPlayer();
+        if (player == null) {
+            return;
+        }
+        awaitingResetTeleport = true;
+        ApiUtilities.teleportPlayerAndSpawnBoat(player, heat.getEvent().getTrack(), location, false, false, () -> awaitingResetTeleport = false);
+    }
+
     public void resetQualyLap() {
         laps.remove(laps.size() - 1);
         state = DriverState.RUNNING;
+        awaitingResetTeleport = false;
         newLap();
     }
 
     public void resetQualyLap(Location from, Location to, TrackRegion region) {
         laps.remove(laps.size() - 1);
         state = DriverState.RUNNING;
+        awaitingResetTeleport = false;
         newLap(from, to, region);
     }
 
     public void lapReset() {
         state = DriverState.RUNNING;
+        awaitingResetTeleport = false;
         newLap();
     }
 
     public void lapReset(Location from, Location to, TrackRegion region) {
         state = DriverState.RUNNING;
+        awaitingResetTeleport = false;
         newLap(from, to, region);
     }
 
     public void reset() {
         state = DriverState.SETUP;
+        awaitingResetTeleport = false;
         setEndTime(null);
         setStartTime(null);
         laps = new ArrayList<>();

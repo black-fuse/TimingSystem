@@ -712,12 +712,15 @@ public class TSListener implements Listener {
                         checkDeltas(driver);
                     }
                     return;
-                } else if (driver.getState() == DriverState.RESET) {
-                    driver.resetQualyLap(e.getFrom(), e.getTo(), r);
-                    heat.updatePositions();
-                    return;
-                } else if (driver.getState() == DriverState.LAPRESET) {
-                    driver.lapReset(e.getFrom(), e.getTo(), r);
+                } else if (driver.getState() == DriverState.RESET || driver.getState() == DriverState.LAPRESET) {
+                    if (driver.isAwaitingResetTeleport()) {
+                        return;
+                    }
+                    if (driver.getState() == DriverState.RESET) {
+                        driver.resetQualyLap(e.getFrom(), e.getTo(), r);
+                    } else {
+                        driver.lapReset(e.getFrom(), e.getTo(), r);
+                    }
                     heat.updatePositions();
                     return;
                 } else if (driver.getCurrentLap() != null && driver.getCurrentLap().getLatestCheckpoint() != 0) {

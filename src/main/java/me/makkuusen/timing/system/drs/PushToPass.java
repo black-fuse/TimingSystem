@@ -22,19 +22,19 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PushToPass {
 
-    private static final Map<UUID, PushToPassData> pushToPassPlayers = new HashMap<>();
-    private static final Map<UUID, Long> toggleCooldowns = new HashMap<>();
-    private static final Map<UUID, Float> preP2PForwardAccel = new HashMap<>();
+    private static final Map<UUID, PushToPassData> pushToPassPlayers = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> toggleCooldowns = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> preP2PForwardAccel = new ConcurrentHashMap<>();
     private static final short PACKET_ID_SET_FORWARD_ACCELERATION = 11;
     private static final long TOGGLE_COOLDOWN_MS = 500;
-    private static final Map<UUID, Integer> trailTaskIds = new HashMap<>();
+    private static final Map<UUID, Integer> trailTaskIds = new ConcurrentHashMap<>();
     private static final Long TRAIL_PARTICLE_TICK_SPACING = 1L;
 
     /**
@@ -126,6 +126,8 @@ public class PushToPass {
      * Initializes push to pass for a player (called when heat starts)
      */
     public static void initializePushToPass(UUID playerId) {
+        cleanupPlayer(playerId);
+
         int startingCharge = TimingSystem.configuration.getPushToPassStartingCharge();
 
         PushToPassData data = new PushToPassData(startingCharge);
@@ -162,20 +164,23 @@ public class PushToPass {
     public static void transferPushToPass(UUID fromPlayerId, UUID toPlayerId) {
         PushToPassData fromData = pushToPassPlayers.get(fromPlayerId);
         if (fromData == null) {
+            initializePushToPass(toPlayerId);
             return;
         }
 
         fromData.updateCharge();
+        double transferredCharge = fromData.getChargePercent();
 
-        PushToPassData toData = new PushToPassData(fromData.getChargePercent());
+        cleanupPlayer(fromPlayerId);
+        cleanupPlayer(toPlayerId);
+
+        PushToPassData toData = new PushToPassData(transferredCharge);
         pushToPassPlayers.put(toPlayerId, toData);
 
         Player toPlayer = Bukkit.getPlayer(toPlayerId);
         if (toPlayer != null) {
             toData.addPlayer(toPlayer);
         }
-
-        cleanupPlayer(fromPlayerId);
     }
 
     /**

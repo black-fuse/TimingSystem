@@ -5,7 +5,6 @@ import me.makkuusen.timing.system.api.TimingSystemAPI;
 import me.makkuusen.timing.system.boatutils.BoatUtilsManager;
 import me.makkuusen.timing.system.boatutils.CustomBoatUtilsMode;
 import me.makkuusen.timing.system.database.EventDatabase;
-import me.makkuusen.timing.system.heat.CollisionMode;
 import me.makkuusen.timing.system.heat.Heat;
 import me.makkuusen.timing.system.loneliness.LonelinessController;
 import me.makkuusen.timing.system.participant.Driver;
@@ -18,18 +17,18 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class DrsManager {
-    
-    private static final Map<UUID, DrsData> drsEnabledPlayers = new HashMap<>();
-    private static final Map<Integer, Map<UUID, Instant>> drsDetectRegionPasses = new HashMap<>();
-    private static final Map<Integer, Map<UUID, Instant>> drsEnabledInRegion = new HashMap<>();
-    private static final Map<UUID, Integer> activeDrsPlayers = new HashMap<>();
-    private static final Map<UUID, Float> preDrsForwardAccel = new HashMap<>();
+
+    private static final Map<UUID, DrsData> drsEnabledPlayers = new ConcurrentHashMap<>();
+    private static final Map<Integer, Map<UUID, Instant>> drsDetectRegionPasses = new ConcurrentHashMap<>();
+    private static final Map<Integer, Map<UUID, Instant>> drsEnabledInRegion = new ConcurrentHashMap<>();
+    private static final Map<UUID, Integer> activeDrsPlayers = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> preDrsForwardAccel = new ConcurrentHashMap<>();
 
     private static final short PACKET_ID_SET_FORWARD_ACCELERATION = 11;
     
@@ -101,8 +100,8 @@ public class DrsManager {
         UUID playerId = player.getUniqueId();
         Instant now = Instant.now();
         
-        Map<UUID, Instant> regionPasses = drsDetectRegionPasses.computeIfAbsent(regionId, k -> new HashMap<>());
-        Map<UUID, Instant> drsEnabledTimes = drsEnabledInRegion.computeIfAbsent(regionId, k -> new HashMap<>());
+        Map<UUID, Instant> regionPasses = drsDetectRegionPasses.computeIfAbsent(regionId, k -> new ConcurrentHashMap<>());
+        Map<UUID, Instant> drsEnabledTimes = drsEnabledInRegion.computeIfAbsent(regionId, k -> new ConcurrentHashMap<>());
         
         int minDelta = TimingSystem.configuration.getDrsMinDelta();
         int maxDelta = TimingSystem.configuration.getDrsMaxDelta();

@@ -2,7 +2,6 @@ package me.makkuusen.timing.system.track.editor;
 
 import com.sk89q.worldedit.math.BlockVector3;
 import com.sk89q.worldedit.regions.Region;
-import com.sk89q.worldedit.math.BlockVector2;
 import me.makkuusen.timing.system.ApiUtilities;
 import me.makkuusen.timing.system.ItemBuilder;
 import me.makkuusen.timing.system.LeaderboardManager;
@@ -113,6 +112,21 @@ public class TrackEditor {
             }
         }
         track.setWeight(weight);
+        return Success.SAVED;
+    }
+
+    public static Message setGridsPerRow(Player player, int gridsPerRow, Track track) {
+        if (track == null) {
+            if (hasTrackSelected(player.getUniqueId())) {
+                track = getPlayerTrackSelection(player.getUniqueId());
+            } else {
+                return Error.TRACK_NOT_FOUND_FOR_EDIT;
+            }
+        }
+        if (gridsPerRow < 0) {
+            return Error.NUMBER_FORMAT;
+        }
+        track.setGridsPerRow(gridsPerRow);
         return Success.SAVED;
     }
 

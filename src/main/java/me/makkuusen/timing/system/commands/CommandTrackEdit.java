@@ -122,6 +122,14 @@ public class CommandTrackEdit extends BaseCommand {
         Text.send(player, response);
     }
 
+    @Subcommand("gridsperrow")
+    @CommandCompletion("<value> @track")
+    @CommandPermission("%permissiontrackedit_gridsperrow")
+    public static void onGridsPerRow(Player player, int gridsPerRow, @Optional Track track) {
+        Message response = TrackEditor.setGridsPerRow(player, gridsPerRow, track);
+        Text.send(player, response);
+    }
+
     @Subcommand("tag")
     @CommandCompletion("@trackTag")
     @CommandPermission("%permissiontrackedit_tag")

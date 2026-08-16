@@ -15,6 +15,7 @@ public enum PermissionHeat implements Permissions {
     SET_LAPS,
     SET_PITS,
     SET_STARTDELAY,
+    SET_ROWSTARTDELAY,
     SET_TIMELIMIT,
     SET_MAXDRIVERS,
     SET_COLLISION,

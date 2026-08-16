@@ -281,6 +281,7 @@ public class CommandEvent extends BaseCommand {
                 if (sourceHeat.getStartDelay() != null) {
                     newHeat.setStartDelayInTicks(sourceHeat.getStartDelay());
                 }
+                newHeat.setRowStartDelay(sourceHeat.getRowStartDelay());
                 if (sourceHeat.getTotalLaps() != null) {
                     newHeat.setTotalLaps(sourceHeat.getTotalLaps());
                 }

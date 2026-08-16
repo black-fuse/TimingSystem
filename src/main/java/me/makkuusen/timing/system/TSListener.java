@@ -144,6 +144,9 @@ public class TSListener implements Listener {
         }
 
         if (event.getCause().equals(PlayerTeleportEvent.TeleportCause.PLUGIN) || event.getCause().equals(PlayerTeleportEvent.TeleportCause.COMMAND) || event.getCause().equals(PlayerTeleportEvent.TeleportCause.ENDER_PEARL) || event.getCause().equals(PlayerTeleportEvent.TeleportCause.CHORUS_FRUIT) || event.getCause().equals(PlayerTeleportEvent.TeleportCause.NETHER_PORTAL)) {
+            if (event.getCause().equals(PlayerTeleportEvent.TeleportCause.PLUGIN) && TimeTrialController.keepTimeTrialOnTeleport.remove(event.getPlayer().getUniqueId())) {
+                return;
+            }
             TimeTrialController.playerLeavingMap(event.getPlayer().getUniqueId());
             if (ApiUtilities.hasBoatUtilsEffects(event.getPlayer())) {
                 ApiUtilities.removeBoatUtilsEffects(event.getPlayer());
@@ -608,14 +611,14 @@ public class TSListener implements Listener {
                 if (!track.getTrackOptions().hasOption(TrackOption.RESET_TO_LATEST_CHECKPOINT) && !track.getTrackOptions().hasOption(TrackOption.RESET_TO_RESET_REGION_SPAWN)) {
                     timeTrial.playerResetMap();
                 } else if (track.getTrackOptions().hasOption(TrackOption.RESET_TO_RESET_REGION_SPAWN)) {
-                    ApiUtilities.teleportPlayerAndSpawnBoat(player, track, r.getSpawnLocation(), false);
+                    ApiUtilities.teleportPlayerAndSpawnBoat(player, track, r.getSpawnLocation(), false, true);
                 } else {
                     var maybeRegion = track.getTrackRegions().getRegion(TrackRegion.RegionType.CHECKPOINT, timeTrial.getLatestCheckpoint());
                     if (maybeRegion.isEmpty()) {
                         timeTrial.playerResetMap();
                         return;
                     }
-                    ApiUtilities.teleportPlayerAndSpawnBoat(player, track, maybeRegion.get().getSpawnLocation(), false);
+                    ApiUtilities.teleportPlayerAndSpawnBoat(player, track, maybeRegion.get().getSpawnLocation(), false, true);
                 }
                 return;
             }

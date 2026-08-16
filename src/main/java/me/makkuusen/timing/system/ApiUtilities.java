@@ -751,12 +751,22 @@ public class ApiUtilities {
     }
 
     public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart) {
+        teleportPlayerAndSpawnBoat(player, track, location, isTimeTrialStart, false);
+    }
+
+    public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart, boolean keepTimeTrial) {
         TaskChain<?> chain = TimingSystem.newChain();
         location.setPitch(player.getLocation().getPitch());
         boolean sameAsLastTrack = TimeTrialController.lastTimeTrialTrack.containsKey(player.getUniqueId()) && TimeTrialController.lastTimeTrialTrack.get(player.getUniqueId()).getId() == track.getId();
         TimeTrialController.lastTimeTrialTrack.put(player.getUniqueId(), track);
+        if (keepTimeTrial) {
+            TimeTrialController.keepTimeTrialOnTeleport.add(player.getUniqueId());
+        }
         removePlayerFromBoat(player);
         chain.async(() -> player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)).delay(4);
+        if (keepTimeTrial) {
+            chain.sync(() -> TimeTrialController.keepTimeTrialOnTeleport.remove(player.getUniqueId()));
+        }
         if (track.isBoatTrack()) {
             chain.sync(() -> ApiUtilities.spawnBoatAndAddPlayerWithBoatUtils(player, location, track, sameAsLastTrack));
             if (isTimeTrialStart) {

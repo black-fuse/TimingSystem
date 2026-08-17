@@ -15,6 +15,7 @@ public enum PermissionTrackEdit implements Permissions{
     ITEM,
     NAME,
     WEIGHT,
+    GRIDSPERROW,
     OWNER,
     SPAWN,
     REGIONSPAWN,

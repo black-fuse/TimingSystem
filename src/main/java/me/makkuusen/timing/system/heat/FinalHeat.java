@@ -3,6 +3,7 @@ package me.makkuusen.timing.system.heat;
 import me.makkuusen.timing.system.ApiUtilities;
 import me.makkuusen.timing.system.event.EventAnnouncements;
 import me.makkuusen.timing.system.participant.Driver;
+import me.makkuusen.timing.system.track.regions.TrackRegion;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 
@@ -13,13 +14,13 @@ public class FinalHeat {
         return passLap(driver, null, null, null);
     }
 
-    public static boolean passLap(Driver driver, org.bukkit.Location from, org.bukkit.Location to, me.makkuusen.timing.system.track.regions.TrackRegion region) {
+    public static boolean passLap(Driver driver, Location from, Location to, TrackRegion region) {
         if (driver.getHeat().getHeatState() != HeatState.RACING) {
             return false;
         }
 
         if (driver.getHeat().getTotalLaps() <= driver.getLaps().size() && driver.getHeat().getTotalPits() <= driver.getPits()) {
-            finishDriver(driver);
+            finishDriver(driver, from, to, region);
             if (driver.getHeat().noDriversRunning()) {
                 driver.getHeat().finishHeat();
             }
@@ -29,8 +30,8 @@ public class FinalHeat {
         return true;
     }
 
-    private static void finishDriver(Driver driver) {
-        driver.finish();
+    private static void finishDriver(Driver driver, Location from, Location to, TrackRegion region) {
+        driver.finish(from, to, region);
         driver.getHeat().updatePositions();
         driver.fireFinishEvent();
         EventAnnouncements.sendFinishSound(driver);

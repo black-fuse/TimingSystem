@@ -68,6 +68,7 @@ public class Heat {
     private Integer totalLaps;
     private Integer totalPits;
     private Integer startDelay;
+    private Integer rowStartDelay;
     private Integer maxDrivers;
     private CollisionMode collisionMode;
     private Boolean reset;
@@ -78,7 +79,6 @@ public class Heat {
     private Integer drsDowntime;
     private Boolean pushToPass;
     private Boolean liveTuningEnabled;
-    private Boolean joinMidHeat;
     private SpectatorScoreboard scoreboard;
     private Instant lastScoreboardUpdate = Instant.now();
 
@@ -110,8 +110,8 @@ public class Heat {
         drsDowntime = data.get("drsDowntime") == null ? 1 : data.getInt("drsDowntime");
         pushToPass = data.get("pushToPass") instanceof Boolean ? data.get("pushToPass") : data.get("pushToPass") == null ? false : data.get("pushToPass").equals(1);
         liveTuningEnabled = data.get("liveTuningEnabled") instanceof Boolean ? data.get("liveTuningEnabled") : data.get("liveTuningEnabled") == null ? false : data.get("liveTuningEnabled").equals(1);
-        joinMidHeat = data.get("joinMidHeat") instanceof Boolean ? data.get("joinMidHeat") : data.get("joinMidHeat") == null ? false : data.get("joinMidHeat").equals(1);
         startDelay = data.get("startDelay") == null ? round instanceof FinalRound ? TimingSystem.configuration.getFinalStartDelayInMS() : TimingSystem.configuration.getQualyStartDelayInMS() : data.getInt("startDelay");
+        rowStartDelay = data.get("rowStartDelay") == null ? null : data.getInt("rowStartDelay");
         fastestLapUUID = data.getString("fastestLapUUID") == null ? null : UUID.fromString(data.getString("fastestLapUUID"));
         gridManager = new GridManager(round instanceof QualificationRound);
         
@@ -146,9 +146,7 @@ public class Heat {
             return false;
         }
 
-        for (Driver driver : getStartPositions()) {
-            setDriverOnGrid(driver);
-        }
+        gridManager.placeDriversInBatches(getStartPositions(), this::setDriverOnGrid);
 
         updateStartingLivePositions();
         setHeatState(HeatState.LOADED);
@@ -161,6 +159,22 @@ public class Heat {
         setDriverOnGrid(driver);
         updateStartingLivePositions();
         getStartPositions().forEach(Driver::updateScoreboard);
+    }
+
+    public void addLateDriverToGrid(Driver driver) {
+        DriverPlacedOnGrid placedEvent = new DriverPlacedOnGrid(driver, this);
+        Bukkit.getServer().getPluginManager().callEvent(placedEvent);
+        // Late joiners share the heat's clock so they get less time than drivers who started on time
+        driver.setStartTime(getStartTime());
+        gridManager.putLateDriverOnGrid(driver, getEvent().getTrack());
+        EventDatabase.addPlayerToRunningHeat(driver);
+        if (!getLivePositions().contains(driver)) {
+            getLivePositions().add(driver);
+        }
+        if (getPushToPass() != null && getPushToPass()) {
+            PushToPass.initializePushToPass(driver.getTPlayer().getUniqueId());
+        }
+        updatePositions();
     }
 
     private void setDriverOnGrid(Driver driver) {
@@ -183,19 +197,15 @@ public class Heat {
     }
 
     public boolean startCountdown() {
-        if (getHeatState() != HeatState.LOADED) {
-            return false;
-        }
-        setHeatState(HeatState.STARTING);
-        countdown(5);
-
-        return true;
+        return startCountdown(5);
     }
 
     public boolean startCountdown(int length) {
         if (getHeatState() != HeatState.LOADED) {
             return false;
         }
+        // A large grid is still being placed a few drivers per tick, so catch up before starting
+        gridManager.placeRemainingDriversNow();
         setHeatState(HeatState.STARTING);
         countdown(length);
 
@@ -225,19 +235,22 @@ public class Heat {
         if (getEvent().isTuningEnabled()) {
             applyTeamTuning();
         }
-        
+
         if (getPushToPass() != null && getPushToPass()) {
             getDrivers().values().forEach(driver ->
                 me.makkuusen.timing.system.drs.PushToPass.initializePushToPass(driver.getTPlayer().getUniqueId())
             );
         }
 
+        int gridsPerRow = getEvent().getTrack() == null ? 0 : getEvent().getTrack().getGridsPerRow();
+
+
         if (round instanceof QualificationRound) {
-            gridManager.startDriversWithDelay(getStartDelay(), true, getStartPositions());
+            gridManager.startDriversWithDelay(getStartDelay(), true, getStartPositions(), gridsPerRow, getRowStartDelay());
             return;
         }
         getDrivers().values().forEach(driver -> driver.setStartTime(TimingSystem.currentTime));
-        gridManager.startDriversWithDelay(getStartDelay(), false, getStartPositions());
+        gridManager.startDriversWithDelay(getStartDelay(), false, getStartPositions(), gridsPerRow, getRowStartDelay());
     }
 
     public void passLap(Driver driver) {
@@ -383,10 +396,12 @@ public class Heat {
         if (maxDrivers != null) {
             return maxDrivers;
         }
-        if (round instanceof QualificationRound && !getEvent().getTrack().getTrackLocations().getLocations(TrackLocation.Type.QUALYGRID).isEmpty()) {
-            return getEvent().getTrack().getTrackLocations().getLocations(TrackLocation.Type.QUALYGRID).size();
+        int gridCount = getEvent().getTrack().getTrackLocations().getLocations(TrackLocation.Type.GRID).size();
+        if (round instanceof QualificationRound) {
+            // A single qualy grid is enough for any number of drivers, so it must not lower the default cap
+            return Math.max(gridCount, getEvent().getTrack().getTrackLocations().getLocations(TrackLocation.Type.QUALYGRID).size());
         }
-        return getEvent().getTrack().getTrackLocations().getLocations(TrackLocation.Type.GRID).size();
+        return gridCount;
     }
 
     public void setMaxDrivers(int maxDrivers) {
@@ -590,6 +605,11 @@ public class Heat {
         TimingSystem.getEventDatabase().heatSet(getId(), "startDelay", startDelay);
     }
 
+    public void setRowStartDelay(Integer rowStartDelay) {
+        this.rowStartDelay = rowStartDelay;
+        TimingSystem.getEventDatabase().heatSet(getId(), "rowStartDelay", rowStartDelay);
+    }
+
     public void setTotalLaps(int totalLaps) {
         this.totalLaps = totalLaps;
         TimingSystem.getEventDatabase().heatSet(getId(), "totalLaps", totalLaps);
@@ -603,6 +623,21 @@ public class Heat {
     public void setHeatNumber(int heatNumber) {
         this.heatNumber = heatNumber;
         TimingSystem.getEventDatabase().heatSet(getId(), "heatNumber", heatNumber);
+    }
+
+    public void setReset(Boolean reset) {
+        this.reset = reset;
+        TimingSystem.getEventDatabase().heatSet(getId(), "canReset", reset);
+    }
+
+    public void setLapReset(Boolean lapReset) {
+        this.lapReset = lapReset;
+        TimingSystem.getEventDatabase().heatSet(getId(), "lapReset", lapReset);
+    }
+
+    public void setGhostingDelta(Integer ghostingDelta) {
+        this.ghostingDelta = ghostingDelta;
+        TimingSystem.getEventDatabase().heatSet(getId(), "ghostingDelta", ghostingDelta);
     }
 
     public void setBoatSwitching(Boolean boatSwitching) {
@@ -628,11 +663,6 @@ public class Heat {
     public void setLiveTuningEnabled(Boolean liveTuningEnabled) {
         this.liveTuningEnabled = liveTuningEnabled;
         TimingSystem.getEventDatabase().heatSet(getId(), "liveTuningEnabled", liveTuningEnabled);
-    }
-
-    public void setJoinMidHeat(Boolean joinMidHeat) {
-        this.joinMidHeat = joinMidHeat;
-        TimingSystem.getEventDatabase().heatSet(getId(), "joinMidHeat", joinMidHeat);
     }
 
     public void setCollisionMode(CollisionMode collisionMode) {
@@ -808,7 +838,7 @@ public class Heat {
 
     public void applyTeamTuning() {
         TimingSystem.getPlugin().getLogger().info("[TimingSystem] Applying team tuning to heat");
-        
+
         for (Map.Entry<UUID, Driver> entry : getDrivers().entrySet()) {
             Driver driver = entry.getValue();
             Player player = driver.getTPlayer().getPlayer();
@@ -850,7 +880,7 @@ public class Heat {
         // Apply base track mode first
         Integer customModeID = track.getCustomBoatUtilsModeId();
         CustomBoatUtilsMode baseMode = null;
-        
+
         if (customModeID != null) {
             baseMode = TimingSystem.getTrackDatabase().getCustomBoatUtilsModeFromId(customModeID);
             if (baseMode != null) {

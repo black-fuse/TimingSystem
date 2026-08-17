@@ -4,6 +4,7 @@ import co.aikar.commands.BaseCommand;
 import co.aikar.commands.annotation.*;
 import me.makkuusen.timing.system.ApiUtilities;
 import me.makkuusen.timing.system.ReadyCheckManager;
+import me.makkuusen.timing.system.TimingSystem;
 import me.makkuusen.timing.system.participant.Streaker;
 import me.makkuusen.timing.system.team.Team;
 import me.makkuusen.timing.system.theme.messages.*;
@@ -37,6 +38,7 @@ import org.bukkit.Location;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.Player;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -68,6 +70,7 @@ public class CommandHeat extends BaseCommand {
     @CommandPermission("%permissionheat_info")
     public static void onHeatInfo(Player player, Heat heat) {
         Theme theme = TSDatabase.getPlayer(player).getTheme();
+        boolean canEdit = !heat.isFinished() && (player.isOp() || player.hasPermission("timingsystem.packs.eventadmin"));
         player.sendMessage(Component.empty());
         player.sendMessage(theme.getRefreshButton().clickEvent(ClickEvent.runCommand("/heat info " + heat.getName())).append(Component.space()).append(theme.getTitleLine(Component.text(heat.getName()).color(theme.getSecondary()).append(Component.space()).append(theme.getParenthesized(heat.getHeatState().name()).append(Component.space()).append(theme.getBrackets(Text.get(player, TextButton.VIEW_EVENT), theme.getButton()).clickEvent(ClickEvent.runCommand("/event info " + heat.getEvent().getDisplayName())).hoverEvent(theme.getClickToViewHoverEvent(player)))))));
 
@@ -76,14 +79,14 @@ public class CommandHeat extends BaseCommand {
         Component start = theme.getBrackets(Text.get(player, Word.START), NamedTextColor.GREEN).clickEvent(ClickEvent.runCommand("/heat start " + heat.getName())).hoverEvent(HoverEvent.showText(Text.get(player, Hover.CLICK_TO_START)));
         Component finish = theme.getBrackets(Text.get(player, Word.FINISH), NamedTextColor.GRAY).clickEvent(ClickEvent.runCommand("/heat finish " + heat.getName())).hoverEvent(HoverEvent.showText(Text.get(player, Hover.CLICK_TO_START)));
 
-        if (player.hasPermission("timingsystem.packs.eventadmin") && heat.getHeatState() != HeatState.FINISHED) {
+        if (canEdit) {
             player.sendMessage(load.append(Component.space()).append(reset).append(Component.space()).append(start).append(Component.space()).append(finish));
         }
 
         if (heat.getTimeLimit() != null) {
             var message = Text.get(player, Info.HEAT_INFO_TIME_LIMIT);
 
-            if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+            if (canEdit) {
                 message = message.append(theme.getEditButton(player, (heat.getTimeLimit() / 1000) + "s", theme).clickEvent(ClickEvent.suggestCommand("/heat set timelimit " + heat.getName() + " ")));
             } else {
                 message = message.append(theme.highlight((heat.getTimeLimit() / 1000) + "s"));
@@ -93,7 +96,7 @@ public class CommandHeat extends BaseCommand {
         if (heat.getStartDelay() != null) {
             var message = Text.get(player, Info.HEAT_INFO_START_DELAY);
 
-            if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+            if (canEdit) {
                 message = message.append(theme.getEditButton(player, (heat.getStartDelay()) + "ms", theme).clickEvent(ClickEvent.suggestCommand("/heat set startdelay " + heat.getName() + " ")));
             } else {
                 message = message.append(theme.highlight((heat.getStartDelay()) + "ms"));
@@ -101,10 +104,20 @@ public class CommandHeat extends BaseCommand {
             player.sendMessage(message);
         }
 
+        String rowStartDelayValue = heat.getRowStartDelay() == null ? "off" : heat.getRowStartDelay() + "ms";
+        var rowStartDelayMessage = Text.get(player, Info.HEAT_INFO_ROW_START_DELAY);
+
+        if (canEdit) {
+            rowStartDelayMessage = rowStartDelayMessage.append(theme.getEditButton(player, rowStartDelayValue, theme).clickEvent(ClickEvent.suggestCommand("/heat set rowstartdelay " + heat.getName() + " ")));
+        } else {
+            rowStartDelayMessage = rowStartDelayMessage.append(theme.highlight(rowStartDelayValue));
+        }
+        player.sendMessage(rowStartDelayMessage);
+
         if (heat.getTotalLaps() != null) {
             var message = Text.get(player, Info.HEAT_INFO_LAPS);
 
-            if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+            if (canEdit) {
                 message = message.append(theme.getEditButton(player, String.valueOf(heat.getTotalLaps()), theme).clickEvent(ClickEvent.suggestCommand("/heat set laps " + heat.getName() + " ")));
             } else {
                 message = message.append(theme.highlight(String.valueOf(heat.getTotalLaps())));
@@ -114,7 +127,7 @@ public class CommandHeat extends BaseCommand {
         if (heat.getTotalPits() != null) {
             var message = Text.get(player, Info.HEAT_INFO_PITS);
 
-            if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+            if (canEdit) {
                 message = message.append(theme.getEditButton(player, String.valueOf(heat.getTotalPits()), theme).clickEvent(ClickEvent.suggestCommand("/heat set pits " + heat.getName() + " ")));
             } else {
                 message = message.append(theme.highlight(String.valueOf(heat.getTotalPits())));
@@ -124,7 +137,7 @@ public class CommandHeat extends BaseCommand {
 
         var maxDriversMessage = Text.get(player, Info.HEAT_INFO_MAX_DRIVERS);
 
-        if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+        if (canEdit) {
             maxDriversMessage = maxDriversMessage.append(theme.getEditButton(player, String.valueOf(heat.getMaxDrivers()), theme).clickEvent(ClickEvent.suggestCommand("/heat set maxdrivers " + heat.getName() + " ")));
         } else {
             maxDriversMessage = maxDriversMessage.append(theme.highlight(String.valueOf(heat.getMaxDrivers())));
@@ -133,34 +146,76 @@ public class CommandHeat extends BaseCommand {
 
         var collisionModeMessage = Text.get(player, Info.HEAT_INFO_COLLISION_MODE);
 
-        if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+        if (canEdit) {
             collisionModeMessage = collisionModeMessage.append(theme.getEditButton(player, heat.getCollisionMode().name().toLowerCase(), theme).clickEvent(ClickEvent.suggestCommand("/heat set collision " + heat.getName() + " ")));
         } else {
             collisionModeMessage = collisionModeMessage.append(theme.highlight(heat.getCollisionMode().name().toLowerCase()));
         }
         player.sendMessage(collisionModeMessage);
 
+        boolean drsEnabled = heat.getDrs() != null && heat.getDrs();
         var drsMessage = Component.text("DRS: ").color(theme.getPrimary());
-
-        if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
-            String drsValue = (heat.getDrs() != null && heat.getDrs()) ? "true" : "false";
-            drsMessage = drsMessage.append(theme.getEditButton(player, drsValue, theme).clickEvent(ClickEvent.suggestCommand("/heat set drs " + heat.getName() + " ")));
+        if (canEdit) {
+            drsMessage = drsMessage.append(theme.getEditButton(player, String.valueOf(drsEnabled), theme).clickEvent(ClickEvent.suggestCommand("/heat set drs " + heat.getName() + " " + !drsEnabled)));
         } else {
-            String drsValue = (heat.getDrs() != null && heat.getDrs()) ? "enabled" : "disabled";
-            drsMessage = drsMessage.append(theme.highlight(drsValue));
+            drsMessage = drsMessage.append(theme.highlight(drsEnabled ? "enabled" : "disabled"));
         }
         player.sendMessage(drsMessage);
 
-        var pushToPassMessage = Component.text("Push to Pass: ").color(theme.getPrimary());
+        if (drsEnabled) {
+            var drsDowntimeMessage = Component.text("DRS Downtime: ").color(theme.getPrimary());
+            if (canEdit) {
+                drsDowntimeMessage = drsDowntimeMessage.append(theme.getEditButton(player, String.valueOf(heat.getDrsDowntime()), theme).clickEvent(ClickEvent.suggestCommand("/heat set drsdowntime " + heat.getName() + " ")));
+            } else {
+                drsDowntimeMessage = drsDowntimeMessage.append(theme.highlight(String.valueOf(heat.getDrsDowntime())));
+            }
+            player.sendMessage(drsDowntimeMessage);
+        }
 
-        if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
-            String p2pValue = (heat.getPushToPass() != null && heat.getPushToPass()) ? "true" : "false";
-            pushToPassMessage = pushToPassMessage.append(theme.getEditButton(player, p2pValue, theme).clickEvent(ClickEvent.suggestCommand("/heat set pushtopass " + heat.getName() + " ")));
+        boolean p2pEnabled = heat.getPushToPass() != null && heat.getPushToPass();
+        var pushToPassMessage = Component.text("Push to Pass: ").color(theme.getPrimary());
+        if (canEdit) {
+            pushToPassMessage = pushToPassMessage.append(theme.getEditButton(player, String.valueOf(p2pEnabled), theme).clickEvent(ClickEvent.suggestCommand("/heat set pushtopass " + heat.getName() + " " + !p2pEnabled)));
         } else {
-            String p2pValue = (heat.getPushToPass() != null && heat.getPushToPass()) ? "enabled" : "disabled";
-            pushToPassMessage = pushToPassMessage.append(theme.highlight(p2pValue));
+            pushToPassMessage = pushToPassMessage.append(theme.highlight(p2pEnabled ? "enabled" : "disabled"));
         }
         player.sendMessage(pushToPassMessage);
+
+        boolean resetEnabled = heat.getReset() != null && heat.getReset();
+        var resetMessage = Component.text("Reset: ").color(theme.getPrimary());
+        if (canEdit) {
+            resetMessage = resetMessage.append(theme.getEditButton(player, String.valueOf(resetEnabled), theme).clickEvent(ClickEvent.suggestCommand("/heat set reset " + heat.getName() + " " + !resetEnabled)));
+        } else {
+            resetMessage = resetMessage.append(theme.highlight(resetEnabled ? "enabled" : "disabled"));
+        }
+        player.sendMessage(resetMessage);
+
+        boolean lapResetEnabled = heat.getLapReset() != null && heat.getLapReset();
+        var lapResetMessage = Component.text("Lap Reset: ").color(theme.getPrimary());
+        if (canEdit) {
+            lapResetMessage = lapResetMessage.append(theme.getEditButton(player, String.valueOf(lapResetEnabled), theme).clickEvent(ClickEvent.suggestCommand("/heat set lapreset " + heat.getName() + " " + !lapResetEnabled)));
+        } else {
+            lapResetMessage = lapResetMessage.append(theme.highlight(lapResetEnabled ? "enabled" : "disabled"));
+        }
+        player.sendMessage(lapResetMessage);
+
+        String ghostingValue = heat.getGhostingDelta() == null ? "off" : heat.getGhostingDelta() + "ms";
+        var ghostingMessage = Component.text("Ghosting Delta: ").color(theme.getPrimary());
+        if (canEdit) {
+            ghostingMessage = ghostingMessage.append(theme.getEditButton(player, ghostingValue, theme).clickEvent(ClickEvent.suggestCommand("/heat set ghostingDelta " + heat.getName() + " ")));
+        } else {
+            ghostingMessage = ghostingMessage.append(theme.highlight(ghostingValue));
+        }
+        player.sendMessage(ghostingMessage);
+
+        boolean boatSwitching = heat.isBoatSwitchingEnabled();
+        var boatSwitchingMessage = Component.text("Boat Switching: ").color(theme.getPrimary());
+        if (canEdit) {
+            boatSwitchingMessage = boatSwitchingMessage.append(theme.getEditButton(player, String.valueOf(boatSwitching), theme).clickEvent(ClickEvent.suggestCommand("/heat set boatSwitching " + heat.getName() + " " + !boatSwitching)));
+        } else {
+            boatSwitchingMessage = boatSwitchingMessage.append(theme.highlight(boatSwitching ? "enabled" : "disabled"));
+        }
+        player.sendMessage(boatSwitchingMessage);
 
         var liveTuningMessage = Component.text("Live Tuning: ").color(theme.getPrimary());
 
@@ -180,7 +235,7 @@ public class CommandHeat extends BaseCommand {
 
         var driverMessage = Text.get(player, Info.HEAT_INFO_DRIVERS);
 
-        if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+        if (canEdit) {
             driverMessage = driverMessage.append(Component.space()).append(theme.getAddButton().clickEvent(ClickEvent.suggestCommand("/heat add " + heat.getName() + " ")))
                 .append(Component.space())
                 .append(theme.getBrackets(Component.text("+ Team"), NamedTextColor.GREEN)
@@ -200,7 +255,7 @@ public class CommandHeat extends BaseCommand {
                 
                 var message = theme.tab().append(Component.text(teamEntry.getStartPosition() + ": " + teamName + " (Active: " + activeDriverName + ")").color(NamedTextColor.WHITE));
 
-                if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+                if (canEdit) {
                     message = message.append(theme.tab()).append(theme.getRemoveButton().clickEvent(ClickEvent.suggestCommand("/heat delete driver " + heat.getName() + " " + activeDriverName)));
                 }
 
@@ -210,7 +265,7 @@ public class CommandHeat extends BaseCommand {
             for (Driver d : heat.getStartPositions()) {
                 var message = theme.tab().append(Component.text(d.getStartPosition() + ": " + d.getTPlayer().getName()).color(NamedTextColor.WHITE));
 
-                if (!heat.isFinished() && player.hasPermission("timingsystem.packs.eventadmin")) {
+                if (canEdit) {
                     message = message.append(theme.tab()).append(theme.getMoveButton().clickEvent(ClickEvent.suggestCommand("/heat set driverposition " + heat.getName() + " " + d.getTPlayer().getName() + " ")).hoverEvent(HoverEvent.showText(Text.get(player, Hover.CLICK_TO_EDIT_POSITION)))).append(Component.space()).append(theme.getRemoveButton().clickEvent(ClickEvent.suggestCommand("/heat delete driver " + heat.getName() + " " + d.getTPlayer().getName())));
                 }
 
@@ -367,6 +422,25 @@ public class CommandHeat extends BaseCommand {
         heat.setStartDelayInTicks(delay);
         Text.send(player, Success.SAVED);
 
+    }
+
+    @Subcommand("set rowstartdelay")
+    @CommandCompletion("@heat <false/h/m/s>")
+    @CommandPermission("%permissionheat_set_rowstartdelay")
+    public static void onHeatRowStartDelay(Player player, Heat heat, String rowStartDelay) {
+        if (rowStartDelay.equalsIgnoreCase("false")) {
+            heat.setRowStartDelay(null);
+            Text.send(player, Success.SAVED);
+            return;
+        }
+
+        Integer delay = ApiUtilities.parseDurationToMillis(rowStartDelay);
+        if (delay == null) {
+            Text.send(player, Error.TIME_FORMAT);
+            return;
+        }
+        heat.setRowStartDelay(delay);
+        Text.send(player, Success.SAVED);
     }
 
     @Subcommand("set timelimit")
@@ -643,6 +717,29 @@ public class CommandHeat extends BaseCommand {
             }
         }
 
+        if (heat.isRacing()) {
+            // Late joins are only possible in qualifying heats that have actually started
+            if (heat.getHeatState() != HeatState.RACING || !(heat.getRound() instanceof QualificationRound) || heat.getStartTime() == null) {
+                Text.send(sender, Error.HEAT_ALREADY_STARTED);
+                return;
+            }
+            if (tPlayer.getPlayer() == null) {
+                Text.send(sender, Error.PLAYER_NOT_FOUND);
+                return;
+            }
+            if (heat.getTimeLimit() != null && Duration.between(heat.getStartTime(), TimingSystem.currentTime).toMillis() > heat.getTimeLimit()) {
+                Text.send(sender, Error.NOT_NOW);
+                return;
+            }
+            if (EventDatabase.heatDriverNewLate(tPlayer.getUniqueId(), heat, heat.getDrivers().size() + 1)) {
+                heat.addLateDriverToGrid(heat.getDrivers().get(tPlayer.getUniqueId()));
+                Text.send(sender, Success.ADDED_DRIVER);
+                return;
+            }
+            Text.send(sender, Error.FAILED_TO_ADD_DRIVER);
+            return;
+        }
+
         if (EventDatabase.heatDriverNew(tPlayer.getUniqueId(), heat, heat.getDrivers().size() + 1)) {
             Text.send(sender, Success.ADDED_DRIVER);
 
@@ -834,6 +931,68 @@ public class CommandHeat extends BaseCommand {
             }
             Text.send(sender,Error.FAILED_TO_REMOVE_DRIVER);
         }
+    }
+
+    @Subcommand("delete offlinedrivers")
+    @CommandCompletion("@heat")
+    @CommandPermission("%permissionheat_removedriver")
+    public static void onHeatRemoveOfflineDrivers(Player sender, Heat heat) {
+        if (heat.isBoatSwitchingEnabled()) {
+            sender.sendMessage(Component.text("Cannot remove individual drivers from a boat switching heat. Use '/heat delete team' instead.", NamedTextColor.RED));
+            return;
+        }
+
+        if (heat.isRacing()) {
+            Text.send(sender, Error.HEAT_ALREADY_STARTED);
+            return;
+        }
+
+        if (heat.getHeatState() == HeatState.FINISHED) {
+            Text.send(sender, Error.NOT_NOW);
+            return;
+        }
+
+        List<Driver> offlineDrivers = new ArrayList<>(heat.getDrivers().values()).stream()
+                .filter(d -> d.getTPlayer().getPlayer() == null)
+                .toList();
+
+        if (offlineDrivers.isEmpty()) {
+            sender.sendMessage(Component.text("No offline drivers in heat " + heat.getName() + ".", NamedTextColor.YELLOW));
+            return;
+        }
+
+        boolean reload = false;
+        if (heat.getHeatState() == HeatState.LOADED) {
+            heat.resetHeat();
+            reload = true;
+        }
+
+        int removed = 0;
+        for (Driver driver : offlineDrivers) {
+            TPlayer tPlayer = driver.getTPlayer();
+            if (!heat.removeDriver(driver)) {
+                continue;
+            }
+            removed++;
+            boolean removeSpectator = true;
+            for (Round round : heat.getEvent().getEventSchedule().getRounds()) {
+                for (Heat h : round.getHeats()) {
+                    if (h.getDrivers().containsKey(tPlayer.getUniqueId())) {
+                        removeSpectator = false;
+                        break;
+                    }
+                }
+            }
+            if (removeSpectator) {
+                heat.getEvent().removeSpectator(tPlayer.getUniqueId());
+            }
+        }
+
+        if (reload) {
+            heat.loadHeat();
+        }
+
+        sender.sendMessage(Component.text("Removed " + removed + " offline driver" + (removed == 1 ? "" : "s") + " from heat " + heat.getName() + ".", NamedTextColor.GREEN));
     }
 
     @Subcommand("quit")

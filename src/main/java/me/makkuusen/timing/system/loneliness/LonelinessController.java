@@ -55,6 +55,9 @@ public class LonelinessController implements Listener {
                     // Show all drivers, activate nocol
                     showAllOthers(player);
                     setCollisionMode(player, false);
+                } else if (!TimingSystem.configuration.isLonelinessEnabled()) {
+                    // Loneliness disabled by config outside of loneliness heats
+                    showAllOthers(player);
                 } else {
                     // Hide all players
                     hideAllOthers(player);
@@ -111,12 +114,16 @@ public class LonelinessController implements Listener {
     private static void showPlayerAndCustomBoat(Player player, Player boatOwner) {
         if (boatOwner.isInsideVehicle()
                 && (boatOwner.getVehicle() instanceof Boat || boatOwner.getVehicle() instanceof ChestBoat)) {
-            if (TimingSystem.configuration.isFrostHexAddOnEnabled()
-                    && !boatOwner.getVehicle().getPassengers().isEmpty()) {
-                for (Entity e : boatOwner.getVehicle().getPassengers()) {
-                    if (e instanceof WanderingTrader || e instanceof Villager) {
+            for (Entity e : boatOwner.getVehicle().getPassengers()) {
+                if (e.getUniqueId().equals(player.getUniqueId()) || e.getUniqueId().equals(boatOwner.getUniqueId())) {
+                    continue;
+                }
+                if (e instanceof WanderingTrader || e instanceof Villager) {
+                    if (TimingSystem.configuration.isFrostHexAddOnEnabled()) {
                         player.showEntity(plugin, e);
                     }
+                } else {
+                    player.showEntity(plugin, e);
                 }
             }
             player.showEntity(plugin, boatOwner.getVehicle());
@@ -127,13 +134,12 @@ public class LonelinessController implements Listener {
     private static void hidePlayerAndCustomBoat(Player player, Player boatOwner) {
         if (boatOwner.isInsideVehicle()
                 && (boatOwner.getVehicle() instanceof Boat || boatOwner.getVehicle() instanceof ChestBoat)) {
-            if (TimingSystem.configuration.isFrostHexAddOnEnabled()
-                    && !boatOwner.getVehicle().getPassengers().isEmpty()) {
-                for (Entity e : boatOwner.getVehicle().getPassengers()) {
-                    if (e instanceof WanderingTrader || e instanceof Villager) {
-                        player.hideEntity(plugin, e);
-                    }
+            // Hide every passenger of the boat, not just the owner
+            for (Entity e : boatOwner.getVehicle().getPassengers()) {
+                if (e.getUniqueId().equals(player.getUniqueId()) || e.getUniqueId().equals(boatOwner.getUniqueId())) {
+                    continue;
                 }
+                player.hideEntity(plugin, e);
             }
             player.hideEntity(plugin, boatOwner.getVehicle());
         }
@@ -232,28 +238,24 @@ public class LonelinessController implements Listener {
         boolean canUseNocol = playerCanUseNocol(viewingPlayer);
         boolean lonelinessDisabled = !TimingSystemAPI.getTPlayer(viewingPlayer.getUniqueId()).getSettings().isLonely();
 
-        if (canUseNocol && lonelinessDisabled) {
+        Optional<Driver> viewingMaybeDriver = getDriverFromRunningHeat(viewingPlayer);
+        Heat viewingStreakingHeat = getStreakingHeat(viewingPlayer);
+        boolean viewingIsDriver = viewingMaybeDriver.isPresent();
+        Heat viewingHeat = viewingIsDriver ? viewingMaybeDriver.get().getHeat() : viewingStreakingHeat;
+
+        // When loneliness is disabled by config, it only applies in loneliness heats (collision mode DISABLED)
+        boolean lonelinessApplies = TimingSystem.configuration.isLonelinessEnabled()
+                || (viewingHeat != null && viewingHeat.getCollisionMode() == CollisionMode.DISABLED);
+
+        if ((canUseNocol && lonelinessDisabled) || !lonelinessApplies) {
             showPlayerAndCustomBoat(viewingPlayer, targetPlayer);
         } else {
             hidePlayerAndCustomBoat(viewingPlayer, targetPlayer);
         }
 
-        Optional<Driver> viewingMaybeDriver = getDriverFromRunningHeat(viewingPlayer);
-        Heat viewingStreakingHeat = getStreakingHeat(viewingPlayer);
-        
-        if (!viewingMaybeDriver.isPresent() && viewingStreakingHeat == null) return;
+        if (viewingHeat == null) return;
 
-        Heat viewingHeat;
-        boolean viewingIsDriver = viewingMaybeDriver.isPresent();
-        
-        if (viewingIsDriver) {
-            Driver viewingDriver = viewingMaybeDriver.get();
-            viewingHeat = viewingDriver.getHeat();
-            if (isDriverNotParticipating(viewingDriver)) return;
-        } else {
-            // Viewing player is a streaker
-            viewingHeat = viewingStreakingHeat;
-        }
+        if (viewingIsDriver && isDriverNotParticipating(viewingMaybeDriver.get())) return;
 
         Optional<Driver> targetMaybeDriver = getDriverFromRunningHeat(targetPlayer);
         boolean targetIsStreaker = viewingHeat.getStreakers().containsKey(targetPlayer.getUniqueId());

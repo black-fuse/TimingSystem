@@ -22,19 +22,19 @@ import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.time.Instant;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class PushToPass {
 
-    private static final Map<UUID, PushToPassData> pushToPassPlayers = new HashMap<>();
-    private static final Map<UUID, Long> toggleCooldowns = new HashMap<>();
-    private static final Map<UUID, Float> preP2PForwardAccel = new HashMap<>();
+    private static final Map<UUID, PushToPassData> pushToPassPlayers = new ConcurrentHashMap<>();
+    private static final Map<UUID, Long> toggleCooldowns = new ConcurrentHashMap<>();
+    private static final Map<UUID, Float> preP2PForwardAccel = new ConcurrentHashMap<>();
     private static final short PACKET_ID_SET_FORWARD_ACCELERATION = 11;
     private static final long TOGGLE_COOLDOWN_MS = 500;
-    private static final Map<UUID, Integer> trailTaskIds = new HashMap<>();
+    private static final Map<UUID, Integer> trailTaskIds = new ConcurrentHashMap<>();
     private static final Long TRAIL_PARTICLE_TICK_SPACING = 1L;
 
     /**
@@ -126,6 +126,8 @@ public class PushToPass {
      * Initializes push to pass for a player (called when heat starts)
      */
     public static void initializePushToPass(UUID playerId) {
+        cleanupPlayer(playerId);
+
         int startingCharge = TimingSystem.configuration.getPushToPassStartingCharge();
 
         PushToPassData data = new PushToPassData(startingCharge);
@@ -162,20 +164,23 @@ public class PushToPass {
     public static void transferPushToPass(UUID fromPlayerId, UUID toPlayerId) {
         PushToPassData fromData = pushToPassPlayers.get(fromPlayerId);
         if (fromData == null) {
+            initializePushToPass(toPlayerId);
             return;
         }
 
         fromData.updateCharge();
+        double transferredCharge = fromData.getChargePercent();
 
-        PushToPassData toData = new PushToPassData(fromData.getChargePercent());
+        cleanupPlayer(fromPlayerId);
+        cleanupPlayer(toPlayerId);
+
+        PushToPassData toData = new PushToPassData(transferredCharge);
         pushToPassPlayers.put(toPlayerId, toData);
 
         Player toPlayer = Bukkit.getPlayer(toPlayerId);
         if (toPlayer != null) {
             toData.addPlayer(toPlayer);
         }
-
-        cleanupPlayer(fromPlayerId);
     }
 
     /**
@@ -229,6 +234,7 @@ public class PushToPass {
     public static void updateAllCharges() {
         for (Map.Entry<UUID, PushToPassData> entry : pushToPassPlayers.entrySet()) {
             PushToPassData data = entry.getValue();
+            data.setCatchUpMultiplier(computeCatchUpMultiplier(entry.getKey()));
             data.updateCharge();
             double newCharge = data.getChargePercent();
 
@@ -242,6 +248,47 @@ public class PushToPass {
                     }
                 });
             }
+        }
+    }
+
+    /**
+     * Computes the charge rate multiplier for a driver based on how far behind the heat leader
+     * they were at the most recent check. Grows linearly with the gap:
+     * 1 + (catchUpPercent / 100) * seconds behind, clamped to catchUpMaxSpeedup when that is set.
+     */
+    private static double computeCatchUpMultiplier(UUID playerId) {
+        double catchUpPercent = TimingSystem.configuration.getPushToPassCatchUpPercent();
+        if (catchUpPercent <= 0) {
+            return 1.0;
+        }
+        try {
+            var maybeDriver = EventDatabase.getDriverFromRunningHeat(playerId);
+            if (maybeDriver.isEmpty()) {
+                return 1.0;
+            }
+            Driver driver = maybeDriver.get();
+            Heat heat = driver.getHeat();
+            if (heat.getLivePositions().isEmpty()) {
+                return 1.0;
+            }
+            Driver leader = heat.getLivePositions().get(0);
+            if (leader.equals(driver)) {
+                return 1.0;
+            }
+            long gapMillis = driver.getTimeGap(leader);
+            if (gapMillis <= 0) {
+                return 1.0;
+            }
+            double secondsBehind = gapMillis / 1000.0;
+            double multiplier = 1.0 + (catchUpPercent / 100.0) * secondsBehind;
+            double maxSpeedup = TimingSystem.configuration.getPushToPassCatchUpMaxSpeedup();
+            if (maxSpeedup > 1.0) {
+                multiplier = Math.min(multiplier, maxSpeedup);
+            }
+            return multiplier;
+        } catch (Exception e) {
+            // Gap calculation can fail during transitional states (e.g. leader without laps yet)
+            return 1.0;
         }
     }
 
@@ -367,6 +414,7 @@ public class PushToPass {
         private boolean active;
         private Instant lastUpdate;
         private BossBar bossBar;
+        private double catchUpMultiplier = 1.0;
 
         public PushToPassData(double startingCharge) {
             this.chargePercent = Math.max(0, Math.min(100, startingCharge));
@@ -380,6 +428,10 @@ public class PushToPass {
             this.active = active;
             this.lastUpdate = Instant.now();
             updateBossBar();
+        }
+
+        public void setCatchUpMultiplier(double catchUpMultiplier) {
+            this.catchUpMultiplier = catchUpMultiplier;
         }
 
         public void addPlayer(Player player) {
@@ -437,7 +489,7 @@ public class PushToPass {
                 }
             } else {
                 int fullChargeTime = TimingSystem.configuration.getPushToPassFullChargeTime();
-                double chargeRate = 100.0 / fullChargeTime;
+                double chargeRate = (100.0 / fullChargeTime) * catchUpMultiplier;
                 double oldCharge = chargePercent;
                 chargePercent += chargeRate * elapsedMillis;
                 if (chargePercent > 100) {

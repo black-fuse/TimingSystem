@@ -9,6 +9,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.UUID;
 
 public class TimeTrialController {
@@ -17,6 +19,7 @@ public class TimeTrialController {
     public static HashMap<UUID, Long> elytraProtection = new HashMap<>();
     public static HashMap<UUID, TimeTrialSession> timeTrialSessions = new HashMap<>();
     public static HashMap<UUID, Track> lastTimeTrialTrack = new HashMap<>();
+    public static final Set<UUID> keepTimeTrialOnTeleport = new HashSet<>();
 
     public static void playerLeavingMap(UUID uuid) {
         if (!TimeTrialController.timeTrials.containsKey(uuid)) {

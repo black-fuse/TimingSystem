@@ -520,6 +520,45 @@ public class ApiUtilities {
         return mapTime;
     }
 
+    public static Instant getPreciseRegionEntryTime(Location from, Location to, TrackRegion region) {
+        Instant tickTime = TimingSystem.currentTime;
+        if (from == null || to == null || region == null) {
+            return tickTime;
+        }
+
+        double proportion = calculateRegionEntryProportion(from, to, region);
+        long tickDurationNanos = 50_000_000L; // 1 tick in nanoseconds
+        long adjustmentNanos = (long) ((1.0 - proportion) * tickDurationNanos);
+        return tickTime.minusNanos(adjustmentNanos);
+    }
+
+    private static double calculateRegionEntryProportion(Location from, Location to, TrackRegion region) {
+        double low = 0.0;
+        double high = 1.0;
+
+        for (int i = 0; i < 15; i++) {
+            double mid = (low + high) / 2.0;
+
+            Location midLocation = interpolateLocation(from, to, mid);
+
+            if (region.contains(midLocation)) {
+                high = mid;
+            } else {
+                low = mid;
+            }
+        }
+
+        return (low + high) / 2.0;
+    }
+
+    private static Location interpolateLocation(Location from, Location to, double proportion) {
+        double x = from.getX() + (to.getX() - from.getX()) * proportion;
+        double y = from.getY() + (to.getY() - from.getY()) * proportion;
+        double z = from.getZ() + (to.getZ() - from.getZ()) * proportion;
+
+        return new Location(from.getWorld(), x, y, z);
+    }
+
     public static boolean isRegionMatching(TrackRegion trackRegion, Region selection) {
         if (trackRegion instanceof TrackCuboidRegion && selection instanceof CuboidRegion) {
             return true;
@@ -712,18 +751,31 @@ public class ApiUtilities {
     }
 
     public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart) {
+        teleportPlayerAndSpawnBoat(player, track, location, isTimeTrialStart, false);
+    }
+
+    public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart, boolean keepTimeTrial) {
+        teleportPlayerAndSpawnBoat(player, track, location, isTimeTrialStart, keepTimeTrial, null);
+    }
+
+    public static void teleportPlayerAndSpawnBoat(Player player, Track track, Location location, boolean isTimeTrialStart, boolean keepTimeTrial, Runnable onTeleportComplete) {
         TaskChain<?> chain = TimingSystem.newChain();
         location.setPitch(player.getLocation().getPitch());
         boolean sameAsLastTrack = TimeTrialController.lastTimeTrialTrack.containsKey(player.getUniqueId()) && TimeTrialController.lastTimeTrialTrack.get(player.getUniqueId()).getId() == track.getId();
         TimeTrialController.lastTimeTrialTrack.put(player.getUniqueId(), track);
+        if (keepTimeTrial) {
+            TimeTrialController.keepTimeTrialOnTeleport.add(player.getUniqueId());
+        }
         removePlayerFromBoat(player);
         chain.async(() -> player.teleportAsync(location, PlayerTeleportEvent.TeleportCause.PLUGIN)).delay(4);
+        if (keepTimeTrial) {
+            chain.sync(() -> TimeTrialController.keepTimeTrialOnTeleport.remove(player.getUniqueId()));
+        }
         if (track.isBoatTrack()) {
             chain.sync(() -> ApiUtilities.spawnBoatAndAddPlayerWithBoatUtils(player, location, track, sameAsLastTrack));
             if (isTimeTrialStart) {
                 chain.sync(() -> Bukkit.getServer().getPluginManager().callEvent(new TimeTrialTeleportEvent(player, track)));
             }
-            chain.execute();
         } else if (track.isElytraTrack()) {
             chain.sync(() -> {
                 ItemStack chest = player.getInventory().getChestplate();
@@ -732,10 +784,12 @@ public class ApiUtilities {
                 } else if (chest.getItemMeta().hasCustomModelData() && chest.getType() == Material.ELYTRA && chest.getItemMeta().getCustomModelData() == 747) {
                     giveElytra(player);
                 }
-            }).execute();
-        } else {
-            chain.execute();
+            });
         }
+        if (onTeleportComplete != null) {
+            chain.sync(onTeleportComplete::run);
+        }
+        chain.execute();
     }
 
     private static void giveElytra(Player player) {

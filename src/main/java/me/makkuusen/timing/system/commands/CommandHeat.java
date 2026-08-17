@@ -103,6 +103,16 @@ public class CommandHeat extends BaseCommand {
             player.sendMessage(message);
         }
 
+        String rowStartDelayValue = heat.getRowStartDelay() == null ? "off" : heat.getRowStartDelay() + "ms";
+        var rowStartDelayMessage = Text.get(player, Info.HEAT_INFO_ROW_START_DELAY);
+
+        if (canEdit) {
+            rowStartDelayMessage = rowStartDelayMessage.append(theme.getEditButton(player, rowStartDelayValue, theme).clickEvent(ClickEvent.suggestCommand("/heat set rowstartdelay " + heat.getName() + " ")));
+        } else {
+            rowStartDelayMessage = rowStartDelayMessage.append(theme.highlight(rowStartDelayValue));
+        }
+        player.sendMessage(rowStartDelayMessage);
+
         if (heat.getTotalLaps() != null) {
             var message = Text.get(player, Info.HEAT_INFO_LAPS);
 
@@ -400,6 +410,25 @@ public class CommandHeat extends BaseCommand {
         heat.setStartDelayInTicks(delay);
         Text.send(player, Success.SAVED);
 
+    }
+
+    @Subcommand("set rowstartdelay")
+    @CommandCompletion("@heat <false/h/m/s>")
+    @CommandPermission("%permissionheat_set_rowstartdelay")
+    public static void onHeatRowStartDelay(Player player, Heat heat, String rowStartDelay) {
+        if (rowStartDelay.equalsIgnoreCase("false")) {
+            heat.setRowStartDelay(null);
+            Text.send(player, Success.SAVED);
+            return;
+        }
+
+        Integer delay = ApiUtilities.parseDurationToMillis(rowStartDelay);
+        if (delay == null) {
+            Text.send(player, Error.TIME_FORMAT);
+            return;
+        }
+        heat.setRowStartDelay(delay);
+        Text.send(player, Success.SAVED);
     }
 
     @Subcommand("set timelimit")

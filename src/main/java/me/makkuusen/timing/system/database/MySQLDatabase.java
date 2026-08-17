@@ -60,7 +60,7 @@ public class MySQLDatabase implements TSDatabase, EventDatabase, TrackDatabase, 
         try {
             var row = DB.getFirstRow("SELECT * FROM `ts_version` ORDER BY `date` DESC;");
 
-            int databaseVersion = 14;
+            int databaseVersion = 15;
             if (row == null) { // First startup
                 DB.executeInsert("INSERT INTO `ts_version` (`version`, `date`) VALUES(?, ?);",
                         databaseVersion,
@@ -150,6 +150,9 @@ public class MySQLDatabase implements TSDatabase, EventDatabase, TrackDatabase, 
         if (previousVersion < 14) {
             Version14.updateMySQL();
         }
+        if (previousVersion < 15) {
+            Version15.updateMySQL();
+        }
     }
 
 
@@ -199,6 +202,7 @@ public class MySQLDatabase implements TSDatabase, EventDatabase, TrackDatabase, 
                       `toggleOpen` tinyint(1) NOT NULL DEFAULT 0,
                       `boatUtilsMode` int(4) NOT NULL DEFAULT '-1',
                       `customBoatUtilsModeId` int(11) DEFAULT NULL,
+                      `gridsPerRow` int(11) NOT NULL DEFAULT 0,
                       `isRemoved` tinyint(1) NOT NULL,
                       PRIMARY KEY (`id`)
                     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;""");
@@ -284,6 +288,7 @@ public class MySQLDatabase implements TSDatabase, EventDatabase, TrackDatabase, 
                       `totalPitstops` int(11) DEFAULT NULL,
                       `timeLimit` int(11) DEFAULT NULL,
                       `startDelay` int(11) DEFAULT NULL,
+                      `rowStartDelay` int(11) DEFAULT NULL,
                       `maxDrivers` int(11) DEFAULT NULL,
                       `lonely` tinyint(1) NOT NULL DEFAULT '0',
                       `collisionMode` varchar(255) COLLATE utf8mb4_unicode_ci DEFAULT NULL,

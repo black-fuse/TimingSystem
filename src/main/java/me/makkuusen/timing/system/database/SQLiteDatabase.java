@@ -31,7 +31,7 @@ public class SQLiteDatabase extends MySQLDatabase {
         try {
             var row = DB.getFirstRow("SELECT * FROM `ts_version` ORDER BY `date` DESC;");
 
-            int databaseVersion = 14;
+            int databaseVersion = 15;
             if (row == null) { // First startup
                 DB.executeInsert("INSERT INTO `ts_version` (`version`, `date`) VALUES(?, ?);",
                         databaseVersion,
@@ -114,6 +114,10 @@ public class SQLiteDatabase extends MySQLDatabase {
         if (previousVersion < 14) {
             Version14.updateSQLite();
         }
+
+        if (previousVersion < 15) {
+            Version15.updateSQLite();
+        }
     }
 
 
@@ -161,6 +165,7 @@ public class SQLiteDatabase extends MySQLDatabase {
                           `toggleOpen` INTEGER NOT NULL,
                           `boatUtilsMode` INTEGER NOT NULL DEFAULT -1,
                           `customBoatUtilsModeId` INTEGER DEFAULT NULL,
+                          `gridsPerRow` INTEGER NOT NULL DEFAULT 0,
                           `isRemoved` INTEGER NOT NULL
                         );""");
 
@@ -239,6 +244,7 @@ public class SQLiteDatabase extends MySQLDatabase {
                           `totalPitstops` INT DEFAULT NULL,
                           `timeLimit` INTEGER DEFAULT NULL,
                           `startDelay` INTEGER DEFAULT NULL,
+                          `rowStartDelay` INTEGER DEFAULT NULL,
                           `maxDrivers` INTEGER DEFAULT NULL,
                           `lonely` INTEGER DEFAULT NULL,
                           `canReset` INTEGER DEFAULT NULL,

@@ -65,6 +65,7 @@ public class Heat {
     private Integer totalLaps;
     private Integer totalPits;
     private Integer startDelay;
+    private Integer rowStartDelay;
     private Integer maxDrivers;
     private CollisionMode collisionMode;
     private Boolean reset;
@@ -105,6 +106,7 @@ public class Heat {
         drsDowntime = data.get("drsDowntime") == null ? 1 : data.getInt("drsDowntime");
         pushToPass = data.get("pushToPass") instanceof Boolean ? data.get("pushToPass") : data.get("pushToPass") == null ? false : data.get("pushToPass").equals(1);
         startDelay = data.get("startDelay") == null ? round instanceof FinalRound ? TimingSystem.configuration.getFinalStartDelayInMS() : TimingSystem.configuration.getQualyStartDelayInMS() : data.getInt("startDelay");
+        rowStartDelay = data.get("rowStartDelay") == null ? null : data.getInt("rowStartDelay");
         fastestLapUUID = data.getString("fastestLapUUID") == null ? null : UUID.fromString(data.getString("fastestLapUUID"));
         gridManager = new GridManager(round instanceof QualificationRound);
         
@@ -139,9 +141,7 @@ public class Heat {
             return false;
         }
 
-        for (Driver driver : getStartPositions()) {
-            setDriverOnGrid(driver);
-        }
+        gridManager.placeDriversInBatches(getStartPositions(), this::setDriverOnGrid);
 
         updateStartingLivePositions();
         setHeatState(HeatState.LOADED);
@@ -192,19 +192,15 @@ public class Heat {
     }
 
     public boolean startCountdown() {
-        if (getHeatState() != HeatState.LOADED) {
-            return false;
-        }
-        setHeatState(HeatState.STARTING);
-        countdown(5);
-
-        return true;
+        return startCountdown(5);
     }
 
     public boolean startCountdown(int length) {
         if (getHeatState() != HeatState.LOADED) {
             return false;
         }
+        // A large grid is still being placed a few drivers per tick, so catch up before starting
+        gridManager.placeRemainingDriversNow();
         setHeatState(HeatState.STARTING);
         countdown(length);
 
@@ -237,12 +233,14 @@ public class Heat {
             );
         }
         
+        int gridsPerRow = getEvent().getTrack() == null ? 0 : getEvent().getTrack().getGridsPerRow();
+
         if (round instanceof QualificationRound) {
-            gridManager.startDriversWithDelay(getStartDelay(), true, getStartPositions());
+            gridManager.startDriversWithDelay(getStartDelay(), true, getStartPositions(), gridsPerRow, getRowStartDelay());
             return;
         }
         getDrivers().values().forEach(driver -> driver.setStartTime(TimingSystem.currentTime));
-        gridManager.startDriversWithDelay(getStartDelay(), false, getStartPositions());
+        gridManager.startDriversWithDelay(getStartDelay(), false, getStartPositions(), gridsPerRow, getRowStartDelay());
     }
 
     public void passLap(Driver driver) {
@@ -595,6 +593,11 @@ public class Heat {
     public void setStartDelayInTicks(int startDelay) {
         this.startDelay = startDelay;
         TimingSystem.getEventDatabase().heatSet(getId(), "startDelay", startDelay);
+    }
+
+    public void setRowStartDelay(Integer rowStartDelay) {
+        this.rowStartDelay = rowStartDelay;
+        TimingSystem.getEventDatabase().heatSet(getId(), "rowStartDelay", rowStartDelay);
     }
 
     public void setTotalLaps(int totalLaps) {

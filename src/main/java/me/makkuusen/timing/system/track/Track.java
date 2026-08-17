@@ -45,6 +45,7 @@ public class Track {
     private BoatUtilsMode boatUtilsMode;
     private Integer customBoatUtilsModeId;
     private int weight;
+    private int gridsPerRow;
     private boolean open;
     private boolean timeTrial;
     private long dateChanged;
@@ -67,6 +68,7 @@ public class Track {
         dateChanged = data.get("dateChanged") == null ? 0 : data.getInt("dateChanged");
         boatUtilsMode = data.get("boatUtilsMode") == null ? BoatUtilsMode.VANILLA : BoatUtilsMode.getMode(data.getInt("boatUtilsMode"));
         customBoatUtilsModeId = data.get("customBoatUtilsModeId") == null ? null : data.getInt("customBoatUtilsModeId");
+        gridsPerRow = data.get("gridsPerRow") == null ? 0 : data.getInt("gridsPerRow");
         trackRegions = new TrackRegions(this);
         timeTrials = new TimeTrials(id);
         trackOptions = new TrackOptions(id);
@@ -143,6 +145,11 @@ public class Track {
 
     public boolean isWeightAboveZero() {
         return weight > 0;
+    }
+
+    public void setGridsPerRow(int gridsPerRow) {
+        this.gridsPerRow = gridsPerRow;
+        TimingSystem.getTrackDatabase().trackSet(id, "gridsPerRow", gridsPerRow);
     }
 
     public void setDateChanged() {

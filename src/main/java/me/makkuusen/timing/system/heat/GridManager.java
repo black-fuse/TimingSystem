@@ -3,12 +3,10 @@ package me.makkuusen.timing.system.heat;
 import co.aikar.taskchain.TaskChain;
 import me.makkuusen.timing.system.ApiUtilities;
 import me.makkuusen.timing.system.TimingSystem;
-import me.makkuusen.timing.system.api.TimingSystemAPI;
 import me.makkuusen.timing.system.loneliness.LonelinessController;
 import me.makkuusen.timing.system.participant.Driver;
 import me.makkuusen.timing.system.participant.DriverState;
 import me.makkuusen.timing.system.timetrial.TimeTrialController;
-import me.makkuusen.timing.system.tplayer.TPlayer;
 import me.makkuusen.timing.system.track.Track;
 import me.makkuusen.timing.system.track.locations.TrackLocation;
 import org.bukkit.*;
@@ -16,18 +14,64 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Boat;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 public class GridManager {
 
+    private static final int DRIVERS_PER_TICK = 5;
+
     private final HashMap<UUID, ArmorStand> armorStands = new HashMap<>();
+    private final Deque<Driver> pendingDrivers = new ArrayDeque<>();
     private final boolean qualy;
+    private Consumer<Driver> pendingPlacement;
+    private BukkitTask placementTask;
 
     public GridManager(boolean qualy) {
         this.qualy = qualy;
+    }
+
+    public void placeDriversInBatches(List<Driver> drivers, Consumer<Driver> placement) {
+        cancelPendingPlacements();
+        pendingPlacement = placement;
+        pendingDrivers.addAll(drivers);
+        placeNextBatch();
+        if (pendingDrivers.isEmpty()) {
+            return;
+        }
+        placementTask = Bukkit.getScheduler().runTaskTimer(TimingSystem.getPlugin(), () -> {
+            placeNextBatch();
+            if (pendingDrivers.isEmpty()) {
+                cancelPendingPlacements();
+            }
+        }, 1, 1);
+    }
+
+    private void placeNextBatch() {
+        for (int i = 0; i < DRIVERS_PER_TICK && !pendingDrivers.isEmpty(); i++) {
+            pendingPlacement.accept(pendingDrivers.poll());
+        }
+    }
+
+    public void placeRemainingDriversNow() {
+        while (!pendingDrivers.isEmpty()) {
+            pendingPlacement.accept(pendingDrivers.poll());
+        }
+        cancelPendingPlacements();
+    }
+
+    public void cancelPendingPlacements() {
+        pendingDrivers.clear();
+        if (placementTask != null) {
+            placementTask.cancel();
+            placementTask = null;
+        }
     }
 
     public void putDriverOnGrid(Driver driver, Track track) {
@@ -116,7 +160,13 @@ public class GridManager {
     }
 
     public void startDriversWithDelay(long startDelayMS, boolean setStartTime, List<Driver> startPositions) {
+        startDriversWithDelay(startDelayMS, setStartTime, startPositions, 0, null);
+    }
+
+    public void startDriversWithDelay(long startDelayMS, boolean setStartTime, List<Driver> startPositions, int gridsPerRow, Integer rowStartDelayMS) {
+        boolean rowDelayEnabled = gridsPerRow > 0 && rowStartDelayMS != null;
         TaskChain<?> chain = TimingSystem.newChain();
+        int started = 0;
         for (Driver driver : startPositions) {
             chain.sync(() -> {
                 startPlayerFromGrid(driver.getTPlayer().getUniqueId());
@@ -130,9 +180,12 @@ public class GridManager {
                     driver.getTPlayer().getPlayer().playSound(driver.getTPlayer().getPlayer().getLocation(), Sound.BLOCK_NOTE_BLOCK_PLING, SoundCategory.MASTER, 1, 1);
                 }
             });
-            if (startDelayMS > 0) {
+            started++;
+            boolean endOfRow = rowDelayEnabled && started % gridsPerRow == 0;
+            long delayMS = endOfRow ? rowStartDelayMS : startDelayMS;
+            if (delayMS > 0) {
                 //Start delay in ms divided by 50ms to get ticks
-                chain.delay((int) (startDelayMS / 50));
+                chain.delay((int) (delayMS / 50));
             }
         }
         chain.execute();
@@ -146,6 +199,7 @@ public class GridManager {
     }
 
     public void clearArmorstands() {
+        cancelPendingPlacements();
         armorStands.values().stream().forEach(armorStand -> armorStand.remove());
     }
 }

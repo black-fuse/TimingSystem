@@ -44,7 +44,7 @@ public class TeamTuning {
 
         // --- Speed ---
         AVAILABLE_ATTRIBUTES.put(Attribute.DEFAULT_SLIPPERINESS,
-            new TuningAttribute("defaultSlipperiness", (short)2, 0.6f, "speed", 1.0f));
+            new TuningAttribute("defaultSlipperiness", (short)2, 0.6f, "speed", 3f));
 
         AVAILABLE_ATTRIBUTES.put(Attribute.PACKED_ICE_SLIPPERINESS,
             new TuningAttribute("packedIceSlipperiness", (short)3, 0.98f, "speed", 0.1f));
@@ -66,7 +66,13 @@ public class TeamTuning {
                 new TuningAttribute("maxSpeedResistance", (short)46, 1.0f, "speed", 1.0f));
 
         AVAILABLE_ATTRIBUTES.put(Attribute.BRAKE_SLIPPERINESS,
-                new TuningAttribute("brakeSlipperiness", (short)41, 1.0f, "speed", 0.1f));
+                new TuningAttribute("brakeSlipperiness", (short)41, 1.0f, "speed", -0.1f));
+
+        AVAILABLE_ATTRIBUTES.put(Attribute.WALLTAP_MULTIPLIER,
+                new TuningAttribute("WALLTAP_MULTIPLIER", (short)34, 0.001f, "handling", 1000.0f));
+
+        AVAILABLE_ATTRIBUTES.put(Attribute.LATERAL_SLIPPERINESS,
+                new TuningAttribute("LATERAL_SLIPPERINESS", (short)40, 1.0f, "handling", -1.0f));
     }
 
 

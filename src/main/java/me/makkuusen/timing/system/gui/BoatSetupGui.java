@@ -50,7 +50,7 @@ public class BoatSetupGui extends BaseGui{
         tuning.getAttributes();
 
         for (Attribute thing : tuning.getAttributes().keySet()){
-            loreToSet.add(Component.text(thing.toString() +": [" + tuning.getAttributes().get(thing) + "]").color(NamedTextColor.WHITE));
+            loreToSet.add(Component.text(thing.toString() +": [" + (tuning.getAttributes().get(thing) - 5) + "]").color(NamedTextColor.WHITE));
         }
 
         ItemStack Item = new ItemBuilder(Material.OAK_BOAT).setName(team.getName() + " tuning" ).build();

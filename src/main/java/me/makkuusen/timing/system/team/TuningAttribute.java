@@ -40,6 +40,9 @@ public class TuningAttribute {
             case "maxSpeed"                    -> mode.getMaxSpeed();
             case "maxSpeedResistance"          -> mode.getMaxSpeedResistance();
             case "brakeSlipperiness"           -> mode.getBrakeSlipperiness();
+
+            case "LATERAL_SLIPPERINESS"        -> mode.getLateralSlipperiness();
+            case "WALLTAP_MULTIPLIER"          -> mode.getWalltapMultiplier();
             default                            -> vanillaDefault;
         };
     }

@@ -509,16 +509,6 @@ public class CommandHeat extends BaseCommand {
         heat.setLiveTuningEnabled(enabled);
         Text.send(player, Success.SAVED);
     }
-
-    @Subcommand("set joinmidheat")
-    @CommandCompletion("@heat true|false")
-    @CommandPermission("%permissionheat_set_joinmidheat")
-    @Description("Allow drivers to join this heat while it's running (qualification only)")
-    public static void onHeatSetJoinMidHeat(Player player, Heat heat, Boolean enabled) {
-        heat.setJoinMidHeat(enabled);
-        Text.send(player, Success.SAVED);
-    }
-
     @Subcommand("set lonely")
     @CommandCompletion("@heat true|false")
     @CommandPermission("%permissionheat_set_lonely")
@@ -742,9 +732,7 @@ public class CommandHeat extends BaseCommand {
 
         if (EventDatabase.heatDriverNew(tPlayer.getUniqueId(), heat, heat.getDrivers().size() + 1)) {
             Text.send(sender, Success.ADDED_DRIVER);
-
-            // If heat is already loaded/running and joinMidHeat is enabled, place them immediately
-            if (heat.getHeatState() == HeatState.LOADED || (heat.isActive() && heat.getJoinMidHeat())) {
+            if (heat.getHeatState() == HeatState.LOADED) {
                 heat.addDriverToGrid(heat.getDrivers().get(tPlayer.getUniqueId()));
             }
             return;

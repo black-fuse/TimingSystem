@@ -48,6 +48,8 @@ public class Part {
         addAttribute(Attribute.MAX_SPEED, 0);
         addAttribute(Attribute.MAX_SPEED_RESISTANCE, 0);
         addAttribute(Attribute.BRAKE_SLIPPERINESS, 0);
+        addAttribute(Attribute.WALLTAP_MULTIPLIER, 0);
+        addAttribute(Attribute.LATERAL_SLIPPERINESS, 0);
     }
 
     public void addAttribute(Attribute name, Integer value){
@@ -87,6 +89,9 @@ public class Part {
         }
         else if (rating > 1){
             nameColor = NamedTextColor.GREEN;
+        }
+        else if (rating < 0){
+            nameColor = NamedTextColor.DARK_GRAY;
         }
         else{
             nameColor = NamedTextColor.WHITE;

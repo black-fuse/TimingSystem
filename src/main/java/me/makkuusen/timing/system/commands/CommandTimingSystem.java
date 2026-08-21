@@ -14,6 +14,7 @@ import me.makkuusen.timing.system.theme.messages.Error;
 import me.makkuusen.timing.system.theme.messages.Success;
 import me.makkuusen.timing.system.tplayer.TPlayer;
 import me.makkuusen.timing.system.track.tags.TrackTag;
+import me.makkuusen.timing.system.tuning.Attribute;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -22,6 +23,8 @@ import org.bukkit.block.data.type.Switch;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -348,9 +351,18 @@ public class CommandTimingSystem extends BaseCommand {
     @CommandPermission("%permissiontimingsystem_tuning_modifier")
     @Description("Set the balance multiplier for a tuning attribute")
     public static void onTuningModifier(CommandSender sender, String attribute, float multiplier) {
-        if (!TeamTuning.AVAILABLE_ATTRIBUTES.containsKey(attribute)) {
+        Attribute selectedAttribute = null;
+
+        for (Attribute attr : TeamTuning.AVAILABLE_ATTRIBUTES.keySet()) {
+            if (attr.toString().equalsIgnoreCase(attribute)) {
+                selectedAttribute = attr;
+                break;
+            }
+        }
+
+        if (selectedAttribute == null) {
             sender.sendMessage("§cUnknown attribute: " + attribute);
-            sender.sendMessage("§7Available: " + String.join(", ", TeamTuning.AVAILABLE_ATTRIBUTES.keySet().toString()));
+            sender.sendMessage("§7Available: " + TeamTuning.AVAILABLE_ATTRIBUTES.keySet());
             return;
         }
         if (multiplier <= 0) {

@@ -118,6 +118,10 @@ public class SQLiteDatabase extends MySQLDatabase {
         if (previousVersion < 15) {
             Version15.updateSQLite();
         }
+
+        if (previousVersion < 16) {
+            Version16.updateSQLite();
+        }
     }
 
 
@@ -256,7 +260,6 @@ public class SQLiteDatabase extends MySQLDatabase {
                           `drsDowntime` INTEGER DEFAULT NULL,
                           `pushToPass` INTEGER NOT NULL DEFAULT 0,
                           `liveTuningEnabled` INTEGER NOT NULL DEFAULT 0,
-                          `joinMidHeat` INTEGER NOT NULL DEFAULT 0,
                           `isRemoved` INTEGER NOT NULL DEFAULT '0'
                         );""");
 

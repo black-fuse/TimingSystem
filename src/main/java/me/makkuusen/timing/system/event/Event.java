@@ -40,7 +40,7 @@ public class Event {
     private long date;
     private boolean openSign;
     private EventState state;
-    private Boolean tuningEnabled = false;
+    private Boolean tuningEnabled;
 
     public Event(DbRow data) {
         id = data.getInt("id");

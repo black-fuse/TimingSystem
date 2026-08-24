@@ -914,11 +914,9 @@ public class Heat {
             } else {
                 sendTuningPacket(player, attribute.getBoatUtilsPacketId(), newValue);
             }
+            sendTuningPacket(player, (short) 14, 1);
 
-            TimingSystem.getPlugin().getLogger().info(String.format(
-                "[TimingSystem] %s: %d pts -> x%.2f (mult:%.1f) -> base %.4f -> final %.4f",
-                attrName, statValue, modifier, attribute.getMultiplier(), baseValue, newValue
-            ));
+            //TimingSystem.getPlugin().getLogger().info(String.format("[TimingSystem] %s: %d pts -> x%.2f (mult:%.1f) -> base %.4f -> final %.4f", attrName, statValue, modifier, attribute.getMultiplier(), baseValue, newValue));
         }
     }
 

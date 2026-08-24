@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import me.makkuusen.timing.system.ApiUtilities;
+import me.makkuusen.timing.system.TimingSystem;
 import me.makkuusen.timing.system.api.TimingSystemAPI;
 import me.makkuusen.timing.system.participant.Driver;
 import me.makkuusen.timing.system.participant.DriverState;
@@ -15,9 +16,12 @@ import me.makkuusen.timing.system.theme.messages.Error;
 import me.makkuusen.timing.system.track.Track;
 import me.makkuusen.timing.system.track.locations.TrackLocation;
 import me.makkuusen.timing.system.track.regions.TrackRegion;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.java.JavaPlugin;
 
+import static me.makkuusen.timing.system.event.Event.plugin;
 import static me.makkuusen.timing.system.heat.QualifyHeat.timeIsOver;
 
 @CommandAlias("reset|re")
@@ -94,17 +98,18 @@ public class CommandReset extends BaseCommand {
 
         if (driver.getState() == DriverState.RUNNING) {
             resetToCheckpoint(driver);
-            if (driver.getHeat().getEvent().getTuningEnabled()){
-                driver.getHeat().applyTeamTuning();
-            }
         } else if (driver.getState() == DriverState.STARTING) {
             resetToGrid(driver);
         } else if (driver.getState() == DriverState.RESET) {
             resetToTrackSpawn(driver);
-            if (driver.getHeat().getEvent().getTuningEnabled()){
+        }
+        TimingSystem plugin = JavaPlugin.getPlugin(TimingSystem.class);
+
+        Bukkit.getScheduler().runTaskLater(plugin, () -> {
+            if (driver.getHeat().getEvent().getTuningEnabled()) {
                 driver.getHeat().applyTeamTuning();
             }
-        }
+        }, 5L);
     }
 
     private static void resetToCheckpoint(Driver driver) {

@@ -47,27 +47,49 @@ public class BoatSetupGui extends BaseGui{
         loreToSet.add(Component.text("rating: " + rating).color(NamedTextColor.YELLOW));
 
         applyLiveTuningIfActive(team);
-        tuning.getAttributes();
 
         for (Attribute thing : tuning.getAttributes().keySet()){
-            loreToSet.add(Component.text(thing.toString() +": [" + (tuning.getAttributes().get(thing) - 5) + "]").color(NamedTextColor.WHITE));
+            loreToSet.add(Component.text(
+                    thing.toString() + ": [" +
+                            (tuning.getAttributes().get(thing) - 5) +
+                            "]"
+            ).color(NamedTextColor.WHITE));
         }
 
-        ItemStack Item = new ItemBuilder(Material.OAK_BOAT).setName(team.getName() + " tuning" ).build();
+        ItemStack item;
 
-        ItemMeta im = Item.getItemMeta();
+        Component itemName = Component.text(team.getName() + " tuning")
+                .color(getRatingColor(rating));
+
+        // Check if all three categories contain the same item
+        List<Part> equippedParts = new ArrayList<>(tuning.getEquippedParts().values());
+
+        boolean sameItem = equippedParts.size() == 3 &&
+                equippedParts.get(0).getItem(tPlayer).getType() == equippedParts.get(1).getItem(tPlayer).getType() &&
+                equippedParts.get(0).getItem(tPlayer).getType() == equippedParts.get(2).getItem(tPlayer).getType();
+
+        if (sameItem) {
+            item = equippedParts.get(0).getItem(tPlayer).clone();
+        } else {
+            item = new ItemBuilder(Material.OAK_BOAT).build();
+        }
+
+        
+        ItemMeta im = item.getItemMeta();
 
         if (im != null) {
+            im.displayName(itemName);
+
             im.addItemFlags(ItemFlag.HIDE_ENCHANTS);
             im.addItemFlags(ItemFlag.HIDE_ITEM_SPECIFICS);
             im.addItemFlags(ItemFlag.HIDE_DYE);
             im.addItemFlags(ItemFlag.HIDE_ATTRIBUTES);
+
             im.lore(loreToSet);
-            Item.setItemMeta(im);
+            item.setItemMeta(im);
         }
 
-        var button = new GuiButton(Item);
-        return button;
+        return new GuiButton(item);
     }
 
     public GuiButton getCategoryButton(TPlayer tPlayer, PartCategory category){
@@ -96,6 +118,20 @@ public class BoatSetupGui extends BaseGui{
         for (PartCategory category : PartCategory.values()){
             setItem(getCategoryButton(tPlayer, category), x);
             x++;
+        }
+    }
+
+    private NamedTextColor getRatingColor(int rating) {
+        if (rating > 0 && rating < 300) {
+            return NamedTextColor.GREEN;
+        } else if (rating < 900) {
+            return NamedTextColor.YELLOW;
+        } else if (rating < 1500) {
+            return NamedTextColor.GOLD;
+        } else if (rating < 2400) {
+            return NamedTextColor.RED;
+        } else {
+            return NamedTextColor.DARK_BLUE;
         }
     }
 
